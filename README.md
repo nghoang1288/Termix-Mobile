@@ -5,9 +5,6 @@
 ![GitHub Release](https://img.shields.io/github/v/release/Termix-SSH/Mobile?style=flat&label=Release)
 <a href="https://discord.gg/jVQGdvHDrf"><img alt="Discord" src="https://img.shields.io/discord/1347374268253470720"></a>
 
-If you would like, you can support the project here!\
-[![GitHub Sponsor](https://img.shields.io/badge/Sponsor-LukeGus-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/LukeGus)
-
 # Overview
 
 Full remote SSH control of your servers with Termix, the ultimate SSH server management tool. It connects to your existing Termix server to provide you with SSH server access.
