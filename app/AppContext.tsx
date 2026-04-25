@@ -153,13 +153,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           }
         } else {
           setAuthenticated(false);
-          setShowServerManager(true);
-          setShowLoginForm(false);
+          setShowServerManager(false);
+          setShowLoginForm(true);
         }
       } catch (error) {
         setAuthenticated(false);
-        setShowServerManager(true);
-        setShowLoginForm(false);
+        setShowServerManager(false);
+        setShowLoginForm(true);
       } finally {
         setIsLoading(false);
       }

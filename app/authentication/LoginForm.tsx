@@ -5,6 +5,9 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  TextInput,
+  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import { useAppContext } from "../AppContext";
 import { useState, useEffect, useRef } from "react";
@@ -12,28 +15,28 @@ import {
   setCookie,
   getCurrentServerUrl,
   initializeServerConfig,
+  saveServerConfig,
 } from "../main-axios";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, RefreshCw } from "lucide-react-native";
+import { RefreshCw, Server as ServerIcon } from "lucide-react-native";
 import { WebView, WebViewNavigation } from "react-native-webview";
-import { WebViewSource } from "react-native-webview/lib/WebViewTypes";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginForm() {
   const {
     setAuthenticated,
     setShowLoginForm,
-    setShowServerManager,
     selectedServer,
+    setSelectedServer,
   } = useAppContext();
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
   const [url, setUrl] = useState("");
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [source, setSource] = useState<WebViewSource>({ uri: "" });
+  const [serverAddress, setServerAddress] = useState("");
+  const [source, setSource] = useState<{ uri: string }>({ uri: "" });
   const [webViewKey, setWebViewKey] = useState(() => String(Date.now()));
-  const [hasNavigated, setHasNavigated] = useState(false);
+  const [isSavingServer, setIsSavingServer] = useState(false);
+  const [showServerEditor, setShowServerEditor] = useState(false);
 
   useEffect(() => {
     const initializeLogin = async () => {
@@ -58,20 +61,64 @@ export default function LoginForm() {
 
       const serverUrl = getCurrentServerUrl();
       if (serverUrl) {
+        setServerAddress(serverUrl);
         setSource({ uri: serverUrl });
         setUrl(serverUrl);
       } else if (selectedServer?.ip) {
+        setServerAddress(selectedServer.ip);
         setSource({ uri: selectedServer.ip });
         setUrl(selectedServer.ip);
+      } else {
+        setShowServerEditor(true);
       }
     };
 
     initializeLogin();
   }, [selectedServer]);
 
-  const handleBackToServerConfig = () => {
-    setShowLoginForm(false);
-    setShowServerManager(true);
+  const handleSaveServerAddress = async () => {
+    const serverUrl = serverAddress.trim();
+    if (!serverUrl) {
+      Alert.alert("Error", "Please enter a server address");
+      return;
+    }
+
+    if (!/^https?:\/\//.test(serverUrl)) {
+      Alert.alert(
+        "Error",
+        "Server address must start with http:// or https://",
+      );
+      return;
+    }
+
+    setIsSavingServer(true);
+
+    try {
+      await saveServerConfig({
+        serverUrl,
+        lastUpdated: new Date().toISOString(),
+      });
+
+      setSelectedServer({
+        name: "Server",
+        ip: serverUrl,
+      });
+      setSource({ uri: serverUrl });
+      setUrl(serverUrl);
+      setWebViewKey(String(Date.now()));
+      setShowServerEditor(false);
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        `Failed to save server: ${error?.message || "Unknown error"}`,
+      );
+    } finally {
+      setIsSavingServer(false);
+    }
+  };
+
+  const handleChangeServer = () => {
+    setShowServerEditor(true);
   };
 
   const handleRefresh = () => {
@@ -79,9 +126,6 @@ export default function LoginForm() {
   };
 
   const handleNavigationStateChange = (navState: WebViewNavigation) => {
-    setCanGoBack(navState.canGoBack);
-    setLoading(navState.loading);
-    setHasNavigated(true);
     if (!navState.loading) {
       setUrl(navState.url);
     }
@@ -381,12 +425,75 @@ export default function LoginForm() {
     })();
   `;
 
-  if (!source.uri) {
+  if (showServerEditor || !source.uri) {
     return (
-      <View className="flex-1 justify-center items-center bg-dark-bg">
-        <ActivityIndicator size="large" color="#22C55E" />
-        <Text className="text-white mt-4">Loading server configuration...</Text>
-      </View>
+      <KeyboardAvoidingView
+        className="flex-1 bg-dark-bg"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: insets.top,
+            paddingHorizontal: 24,
+            justifyContent: "center",
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="mb-8">
+            <Text className="text-white text-3xl font-bold text-center">
+              Termix
+            </Text>
+            <Text className="text-gray-400 text-center mt-2">
+              Sign in to your self-hosted Termix server
+            </Text>
+          </View>
+
+          <View className="bg-[#1a1a1a] rounded-2xl border border-[#303032] p-5">
+            <Text className="text-white text-lg font-semibold mb-1">
+              Server Address
+            </Text>
+            <Text className="text-gray-400 text-sm mb-4">
+              Enter the URL of your Termix server before logging in.
+            </Text>
+
+            <View className="relative">
+              <View className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                <ServerIcon size={20} color="#9CA3AF" />
+              </View>
+              <TextInput
+                className="bg-[#111113] rounded-xl text-white border border-[#303032]"
+                style={{
+                  height: 56,
+                  paddingLeft: 48,
+                  paddingRight: 16,
+                }}
+                placeholder="https://termix.example.com"
+                placeholderTextColor="#71717A"
+                value={serverAddress}
+                onChangeText={setServerAddress}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="off"
+                editable={!isSavingServer}
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSaveServerAddress}
+              disabled={isSavingServer}
+              className={`px-6 py-4 rounded-xl mt-5 ${
+                isSavingServer ? "bg-gray-600" : "bg-green-600"
+              }`}
+            >
+              <Text className="text-white text-center font-semibold text-base">
+                {isSavingServer ? "Saving..." : "Continue to Login"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -394,10 +501,10 @@ export default function LoginForm() {
     <View className="flex-1 bg-dark-bg" style={{ paddingTop: insets.top }}>
       <View className="flex-row items-center justify-between p-4 bg-dark-bg">
         <TouchableOpacity
-          onPress={handleBackToServerConfig}
+          onPress={handleChangeServer}
           className="flex-row items-center"
         >
-          <ArrowLeft size={20} color="#ffffff" />
+          <ServerIcon size={20} color="#ffffff" />
           <Text className="text-white text-lg ml-2">Server</Text>
         </TouchableOpacity>
         <View className="flex-1 mx-4">
@@ -438,7 +545,6 @@ export default function LoginForm() {
         startInLoadingState={true}
         sharedCookiesEnabled={false}
         thirdPartyCookiesEnabled={true}
-        opaque={false}
         {...(Platform.OS === "android" && {
           mixedContentMode: "always",
           allowFileAccess: false,

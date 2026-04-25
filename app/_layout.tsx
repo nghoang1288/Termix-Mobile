@@ -4,7 +4,6 @@ import { TerminalSessionsProvider } from "./contexts/TerminalSessionsContext";
 import { TerminalCustomizationProvider } from "./contexts/TerminalCustomizationContext";
 import { KeyboardProvider } from "./contexts/KeyboardContext";
 import { KeyboardCustomizationProvider } from "./contexts/KeyboardCustomizationContext";
-import ServerForm from "@/app/authentication/ServerForm";
 import LoginForm from "@/app/authentication/LoginForm";
 import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -15,14 +14,12 @@ import UpdateRequired from "@/app/authentication/UpdateRequired";
 
 function RootLayoutContent() {
   const {
-    showServerManager,
     setShowServerManager,
     showLoginForm,
     setShowLoginForm,
     isAuthenticated,
     showUpdateScreen,
     isLoading,
-    setIsLoading,
   } = useAppContext();
 
   if (isLoading) {
@@ -32,8 +29,8 @@ function RootLayoutContent() {
         <Text className="text-white text-lg mt-4">Initializing...</Text>
         <TouchableOpacity
           onPress={() => {
-            setShowLoginForm(false);
-            setShowServerManager(true);
+            setShowLoginForm(true);
+            setShowServerManager(false);
           }}
           className="mt-6 px-6 py-3 bg-[#1a1a1a] border border-[#303032] rounded-lg"
         >
@@ -45,10 +42,6 @@ function RootLayoutContent() {
 
   if (showUpdateScreen) {
     return <UpdateRequired />;
-  }
-
-  if (showServerManager) {
-    return <ServerForm />;
   }
 
   if (showLoginForm) {

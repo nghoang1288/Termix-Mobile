@@ -13,15 +13,19 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Activity } from "lucide-react-native";
+import { Activity, Plus, Pencil, Trash2, X } from "lucide-react-native";
 import {
   getTunnelStatuses,
   connectTunnel,
   disconnectTunnel,
   cancelTunnel,
   getSSHHosts,
+  updateSSHHost,
 } from "../../../main-axios";
 import { showToast } from "../../../utils/toast";
 import type {
@@ -29,6 +33,7 @@ import type {
   SSHHost,
   TunnelConnection,
   TunnelSessionProps,
+  SSHHostData,
 } from "../../../../types";
 import { useOrientation } from "@/app/utils/orientation";
 import { getResponsivePadding, getColumnCount } from "@/app/utils/responsive";
@@ -36,7 +41,6 @@ import {
   BACKGROUNDS,
   BORDER_COLORS,
   RADIUS,
-  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 import TunnelCard from "@/app/tabs/sessions/tunnel/TunnelCard";
 
@@ -59,6 +63,19 @@ export const TunnelManager = forwardRef<
   const [error, setError] = useState<string | null>(null);
   const [allHosts, setAllHosts] = useState<SSHHost[]>([]);
   const [currentHostConfig, setCurrentHostConfig] = useState(hostConfig);
+  const [editorVisible, setEditorVisible] = useState(false);
+  const [editingTunnelIndex, setEditingTunnelIndex] = useState<number | null>(
+    null,
+  );
+  const [isSavingTunnel, setIsSavingTunnel] = useState(false);
+  const [tunnelForm, setTunnelForm] = useState({
+    sourcePort: "",
+    endpointHost: "",
+    endpointPort: "",
+    maxRetries: "5",
+    retryInterval: "5",
+    autoStart: false,
+  });
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const padding = getResponsivePadding(isLandscape);
@@ -161,25 +178,6 @@ export const TunnelManager = forwardRef<
           throw new Error(`Endpoint host not found: ${tunnel.endpointHost}`);
         }
 
-        const sourceHost: Partial<SSHHost> = {
-          id: currentHostConfig.id,
-          name: currentHostConfig.name,
-          ip: "",
-          port: 0,
-          username: "",
-          authType: "none",
-          folder: "",
-          tags: [],
-          pin: false,
-          enableTerminal: true,
-          enableTunnel: true,
-          enableFileManager: true,
-          defaultPath: "",
-          tunnelConnections: currentHostConfig.tunnelConnections,
-          createdAt: "",
-          updatedAt: "",
-        };
-
         const fullHost = allHosts.find((h) => h.id === currentHostConfig.id);
         if (!fullHost) {
           throw new Error("Source host not found");
@@ -248,6 +246,210 @@ export const TunnelManager = forwardRef<
         return newSet;
       });
     }
+  };
+
+  const openNewTunnelEditor = () => {
+    setEditingTunnelIndex(null);
+    setTunnelForm({
+      sourcePort: "",
+      endpointHost: "",
+      endpointPort: "",
+      maxRetries: "5",
+      retryInterval: "5",
+      autoStart: false,
+    });
+    setEditorVisible(true);
+  };
+
+  const openEditTunnelEditor = (tunnel: TunnelConnection, index: number) => {
+    setEditingTunnelIndex(index);
+    setTunnelForm({
+      sourcePort: String(tunnel.sourcePort),
+      endpointHost: tunnel.endpointHost,
+      endpointPort: String(tunnel.endpointPort),
+      maxRetries: String(tunnel.maxRetries ?? 5),
+      retryInterval: String(tunnel.retryInterval ?? 5),
+      autoStart: Boolean(tunnel.autoStart),
+    });
+    setEditorVisible(true);
+  };
+
+  const validatePort = (value: string) => {
+    const port = Number(value);
+    return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : null;
+  };
+
+  const getFullCurrentHost = () => {
+    return allHosts.find((h) => h.id === currentHostConfig.id) || null;
+  };
+
+  const buildHostUpdatePayload = (
+    host: SSHHost,
+    tunnelConnections: TunnelConnection[],
+  ): SSHHostData => ({
+    name: host.name,
+    ip: host.ip,
+    port: host.port,
+    username: host.username,
+    folder: host.folder,
+    tags: host.tags,
+    pin: host.pin,
+    authType: host.authType,
+    password: host.password,
+    key: host.key as any,
+    keyPassword: host.keyPassword,
+    keyType: host.keyType,
+    credentialId: host.credentialId ?? null,
+    overrideCredentialUsername: host.overrideCredentialUsername,
+    enableTerminal: host.enableTerminal,
+    enableTunnel: tunnelConnections.length > 0,
+    enableFileManager: host.enableFileManager,
+    defaultPath: host.defaultPath,
+    forceKeyboardInteractive: host.forceKeyboardInteractive,
+    tunnelConnections,
+    jumpHosts: host.jumpHosts,
+    quickActions: host.quickActions,
+    statsConfig: host.statsConfig,
+    terminalConfig: host.terminalConfig,
+  });
+
+  const saveTunnelConfiguration = async () => {
+    const sourcePort = validatePort(tunnelForm.sourcePort);
+    const endpointPort = validatePort(tunnelForm.endpointPort);
+    const maxRetries = Number(tunnelForm.maxRetries);
+    const retryInterval = Number(tunnelForm.retryInterval);
+    const endpointHost = tunnelForm.endpointHost.trim();
+
+    if (!sourcePort || !endpointPort) {
+      Alert.alert("Invalid Port", "Ports must be between 1 and 65535.");
+      return;
+    }
+
+    if (!endpointHost) {
+      Alert.alert("Missing Endpoint", "Please enter an endpoint host.");
+      return;
+    }
+
+    if (!Number.isInteger(maxRetries) || maxRetries < 0) {
+      Alert.alert("Invalid Retries", "Max retries must be 0 or greater.");
+      return;
+    }
+
+    if (!Number.isInteger(retryInterval) || retryInterval < 1) {
+      Alert.alert("Invalid Interval", "Retry interval must be at least 1.");
+      return;
+    }
+
+    const fullHost = getFullCurrentHost();
+    if (!fullHost) {
+      Alert.alert("Host Missing", "Unable to load the source host details.");
+      return;
+    }
+
+    const existingTunnel =
+      editingTunnelIndex === null
+        ? null
+        : currentHostConfig.tunnelConnections[editingTunnelIndex];
+    const nextTunnel: TunnelConnection = {
+      ...existingTunnel,
+      sourcePort,
+      endpointHost,
+      endpointPort,
+      maxRetries,
+      retryInterval,
+      autoStart: tunnelForm.autoStart,
+    };
+    const nextTunnels = [...(currentHostConfig.tunnelConnections || [])];
+
+    if (editingTunnelIndex === null) {
+      nextTunnels.push(nextTunnel);
+    } else {
+      nextTunnels[editingTunnelIndex] = nextTunnel;
+    }
+
+    setIsSavingTunnel(true);
+    try {
+      const updatedHost = await updateSSHHost(
+        fullHost.id,
+        buildHostUpdatePayload(fullHost, nextTunnels),
+      );
+
+      setCurrentHostConfig({
+        id: updatedHost.id,
+        name: updatedHost.name,
+        enableTunnel: updatedHost.enableTunnel,
+        tunnelConnections: updatedHost.tunnelConnections,
+      });
+      setAllHosts((hosts) =>
+        hosts.map((host) => (host.id === updatedHost.id ? updatedHost : host)),
+      );
+      setEditorVisible(false);
+      showToast.success(
+        editingTunnelIndex === null ? "Tunnel added" : "Tunnel updated",
+      );
+      await fetchTunnelStatuses(false);
+    } catch (err: any) {
+      showToast.error(err?.message || "Failed to save tunnel");
+    } finally {
+      setIsSavingTunnel(false);
+    }
+  };
+
+  const deleteTunnelConfiguration = (
+    tunnel: TunnelConnection,
+    index: number,
+  ) => {
+    Alert.alert(
+      "Delete Tunnel",
+      `Remove port ${tunnel.sourcePort} -> ${tunnel.endpointHost}:${tunnel.endpointPort}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const fullHost = getFullCurrentHost();
+            if (!fullHost) {
+              showToast.error("Unable to load the source host details");
+              return;
+            }
+
+            const tunnelName = `${currentHostConfig.name || `${currentHostConfig.id}`}_${tunnel.sourcePort}_${tunnel.endpointHost}_${tunnel.endpointPort}`;
+            const status = tunnelStatuses[tunnelName];
+            const nextTunnels = currentHostConfig.tunnelConnections.filter(
+              (_item, itemIndex) => itemIndex !== index,
+            );
+
+            try {
+              if (status?.connected) {
+                await disconnectTunnel(tunnelName);
+              }
+
+              const updatedHost = await updateSSHHost(
+                fullHost.id,
+                buildHostUpdatePayload(fullHost, nextTunnels),
+              );
+
+              setCurrentHostConfig({
+                id: updatedHost.id,
+                name: updatedHost.name,
+                enableTunnel: updatedHost.enableTunnel,
+                tunnelConnections: updatedHost.tunnelConnections,
+              });
+              setAllHosts((hosts) =>
+                hosts.map((host) =>
+                  host.id === updatedHost.id ? updatedHost : host,
+                ),
+              );
+              showToast.success("Tunnel deleted");
+              await fetchTunnelStatuses(false);
+            } catch (err: any) {
+              showToast.error(err?.message || "Failed to delete tunnel");
+            }
+          },
+        },
+      ],
+    );
   };
 
   const cardWidth =
@@ -364,7 +566,7 @@ export const TunnelManager = forwardRef<
               fontSize: 14,
             }}
           >
-            This host doesn't have any SSH tunnels configured.
+            This host does not have any SSH tunnels configured.
           </Text>
           <Text
             style={{
@@ -374,8 +576,32 @@ export const TunnelManager = forwardRef<
               fontSize: 14,
             }}
           >
-            Configure tunnels from the desktop app.
+            Add a tunnel here or configure it from the desktop app.
           </Text>
+          <TouchableOpacity
+            onPress={openNewTunnelEditor}
+            style={{
+              backgroundColor: "#22C55E",
+              borderRadius: RADIUS.BUTTON,
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 24,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+            }}
+          >
+            <Plus size={16} color="#ffffff" />
+            <Text
+              style={{
+                color: "#ffffff",
+                fontSize: 14,
+                fontWeight: "700",
+                marginLeft: 8,
+              }}
+            >
+              Add Tunnel
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
@@ -396,15 +622,52 @@ export const TunnelManager = forwardRef<
             />
           }
         >
-          <View style={{ marginBottom: 12 }}>
-            <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: "700" }}>
-              SSH Tunnels
-            </Text>
-            <Text style={{ color: "#9CA3AF", fontSize: 14, marginTop: 4 }}>
-              {currentHostConfig.tunnelConnections.length} tunnel
-              {currentHostConfig.tunnelConnections.length !== 1 ? "s" : ""}{" "}
-              configured for {currentHostConfig.name}
-            </Text>
+          <View
+            style={{
+              alignItems: "flex-start",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginBottom: 12,
+              gap: 12,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{ color: "#ffffff", fontSize: 24, fontWeight: "700" }}
+              >
+                SSH Tunnels
+              </Text>
+              <Text style={{ color: "#9CA3AF", fontSize: 14, marginTop: 4 }}>
+                {currentHostConfig.tunnelConnections.length} tunnel
+                {currentHostConfig.tunnelConnections.length !== 1
+                  ? "s"
+                  : ""}{" "}
+                configured for {currentHostConfig.name}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={openNewTunnelEditor}
+              style={{
+                alignItems: "center",
+                backgroundColor: "#22C55E",
+                borderRadius: RADIUS.BUTTON,
+                flexDirection: "row",
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+              }}
+            >
+              <Plus size={16} color="#ffffff" />
+              <Text
+                style={{
+                  color: "#ffffff",
+                  fontSize: 13,
+                  fontWeight: "700",
+                  marginLeft: 6,
+                }}
+              >
+                Add
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View
@@ -423,7 +686,7 @@ export const TunnelManager = forwardRef<
                 <View
                   key={idx}
                   style={{
-                    width: cardWidth,
+                    width: cardWidth as any,
                     marginBottom: isLandscape && columnCount > 1 ? 0 : 12,
                   }}
                 >
@@ -434,14 +697,407 @@ export const TunnelManager = forwardRef<
                     isLoading={isLoadingTunnel}
                     onAction={async (action) => handleTunnelAction(action, idx)}
                   />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      gap: 8,
+                      marginTop: 8,
+                    }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => openEditTunnelEditor(tunnel, idx)}
+                      style={{
+                        alignItems: "center",
+                        backgroundColor: BACKGROUNDS.CARD,
+                        borderColor: BORDER_COLORS.BUTTON,
+                        borderRadius: RADIUS.BUTTON,
+                        borderWidth: 1,
+                        flex: 1,
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        paddingVertical: 10,
+                      }}
+                    >
+                      <Pencil size={15} color="#E5E7EB" />
+                      <Text
+                        style={{
+                          color: "#E5E7EB",
+                          fontSize: 13,
+                          fontWeight: "600",
+                          marginLeft: 6,
+                        }}
+                      >
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => deleteTunnelConfiguration(tunnel, idx)}
+                      style={{
+                        alignItems: "center",
+                        backgroundColor: "rgba(239, 68, 68, 0.12)",
+                        borderColor: "rgba(239, 68, 68, 0.35)",
+                        borderRadius: RADIUS.BUTTON,
+                        borderWidth: 1,
+                        flex: 1,
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        paddingVertical: 10,
+                      }}
+                    >
+                      <Trash2 size={15} color="#FCA5A5" />
+                      <Text
+                        style={{
+                          color: "#FCA5A5",
+                          fontSize: 13,
+                          fontWeight: "600",
+                          marginLeft: 6,
+                        }}
+                      >
+                        Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               );
             })}
           </View>
         </ScrollView>
       )}
+
+      <Modal
+        visible={editorVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditorVisible(false)}
+      >
+        <View
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.58)",
+            flex: 1,
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: BACKGROUNDS.DARKEST,
+              borderTopColor: BORDER_COLORS.PRIMARY,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
+              borderTopWidth: 1,
+              maxHeight: "88%",
+              paddingBottom: Math.max(insets.bottom, 16),
+            }}
+          >
+            <View
+              style={{
+                alignItems: "center",
+                borderBottomColor: BORDER_COLORS.SECONDARY,
+                borderBottomWidth: 1,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                paddingHorizontal: 18,
+                paddingVertical: 14,
+              }}
+            >
+              <View>
+                <Text
+                  style={{
+                    color: "#ffffff",
+                    fontSize: 18,
+                    fontWeight: "700",
+                  }}
+                >
+                  {editingTunnelIndex === null ? "Add Tunnel" : "Edit Tunnel"}
+                </Text>
+                <Text style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>
+                  Local port forwarding through {currentHostConfig.name}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setEditorVisible(false)}
+                style={{
+                  backgroundColor: BACKGROUNDS.CARD,
+                  borderColor: BORDER_COLORS.BUTTON,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  padding: 8,
+                }}
+              >
+                <X size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={{ padding: 18, gap: 14 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View>
+                <Text
+                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                >
+                  Source Port
+                </Text>
+                <TextInput
+                  value={tunnelForm.sourcePort}
+                  onChangeText={(sourcePort) =>
+                    setTunnelForm((form) => ({ ...form, sourcePort }))
+                  }
+                  keyboardType="number-pad"
+                  placeholder="8080"
+                  placeholderTextColor="#71717A"
+                  style={{
+                    backgroundColor: BACKGROUNDS.CARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                    borderRadius: RADIUS.BUTTON,
+                    borderWidth: 1,
+                    color: "#ffffff",
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                  }}
+                />
+              </View>
+
+              <View>
+                <Text
+                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                >
+                  Endpoint Host
+                </Text>
+                <TextInput
+                  value={tunnelForm.endpointHost}
+                  onChangeText={(endpointHost) =>
+                    setTunnelForm((form) => ({ ...form, endpointHost }))
+                  }
+                  placeholder="Existing host name"
+                  placeholderTextColor="#71717A"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={{
+                    backgroundColor: BACKGROUNDS.CARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                    borderRadius: RADIUS.BUTTON,
+                    borderWidth: 1,
+                    color: "#ffffff",
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                  }}
+                />
+                <Text style={{ color: "#71717A", fontSize: 11, marginTop: 6 }}>
+                  Use a host name already saved in Termix.
+                </Text>
+                {allHosts.filter((host) => host.id !== currentHostConfig.id)
+                  .length > 0 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 8, paddingTop: 10 }}
+                  >
+                    {allHosts
+                      .filter((host) => host.id !== currentHostConfig.id)
+                      .map((host) => (
+                        <TouchableOpacity
+                          key={host.id}
+                          onPress={() =>
+                            setTunnelForm((form) => ({
+                              ...form,
+                              endpointHost: host.name,
+                            }))
+                          }
+                          style={{
+                            backgroundColor:
+                              tunnelForm.endpointHost === host.name
+                                ? "rgba(34, 197, 94, 0.16)"
+                                : BACKGROUNDS.CARD,
+                            borderColor:
+                              tunnelForm.endpointHost === host.name
+                                ? "#22C55E"
+                                : BORDER_COLORS.BUTTON,
+                            borderRadius: 999,
+                            borderWidth: 1,
+                            paddingHorizontal: 12,
+                            paddingVertical: 7,
+                          }}
+                        >
+                          <Text style={{ color: "#E5E7EB", fontSize: 12 }}>
+                            {host.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                  </ScrollView>
+                )}
+              </View>
+
+              <View>
+                <Text
+                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                >
+                  Endpoint Port
+                </Text>
+                <TextInput
+                  value={tunnelForm.endpointPort}
+                  onChangeText={(endpointPort) =>
+                    setTunnelForm((form) => ({ ...form, endpointPort }))
+                  }
+                  keyboardType="number-pad"
+                  placeholder="80"
+                  placeholderTextColor="#71717A"
+                  style={{
+                    backgroundColor: BACKGROUNDS.CARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                    borderRadius: RADIUS.BUTTON,
+                    borderWidth: 1,
+                    color: "#ffffff",
+                    paddingHorizontal: 12,
+                    paddingVertical: 12,
+                  }}
+                />
+              </View>
+
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                  >
+                    Max Retries
+                  </Text>
+                  <TextInput
+                    value={tunnelForm.maxRetries}
+                    onChangeText={(maxRetries) =>
+                      setTunnelForm((form) => ({ ...form, maxRetries }))
+                    }
+                    keyboardType="number-pad"
+                    placeholder="5"
+                    placeholderTextColor="#71717A"
+                    style={{
+                      backgroundColor: BACKGROUNDS.CARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: 1,
+                      color: "#ffffff",
+                      paddingHorizontal: 12,
+                      paddingVertical: 12,
+                    }}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                  >
+                    Retry Seconds
+                  </Text>
+                  <TextInput
+                    value={tunnelForm.retryInterval}
+                    onChangeText={(retryInterval) =>
+                      setTunnelForm((form) => ({ ...form, retryInterval }))
+                    }
+                    keyboardType="number-pad"
+                    placeholder="5"
+                    placeholderTextColor="#71717A"
+                    style={{
+                      backgroundColor: BACKGROUNDS.CARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: 1,
+                      color: "#ffffff",
+                      paddingHorizontal: 12,
+                      paddingVertical: 12,
+                    }}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={() =>
+                  setTunnelForm((form) => ({
+                    ...form,
+                    autoStart: !form.autoStart,
+                  }))
+                }
+                style={{
+                  alignItems: "center",
+                  backgroundColor: BACKGROUNDS.CARD,
+                  borderColor: tunnelForm.autoStart
+                    ? "#22C55E"
+                    : BORDER_COLORS.BUTTON,
+                  borderRadius: RADIUS.BUTTON,
+                  borderWidth: 1,
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 14,
+                  paddingVertical: 13,
+                }}
+              >
+                <View>
+                  <Text style={{ color: "#ffffff", fontWeight: "600" }}>
+                    Auto Start
+                  </Text>
+                  <Text
+                    style={{ color: "#71717A", fontSize: 11, marginTop: 2 }}
+                  >
+                    Start this tunnel automatically when supported by server
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    alignItems: tunnelForm.autoStart
+                      ? "flex-end"
+                      : "flex-start",
+                    backgroundColor: tunnelForm.autoStart
+                      ? "#22C55E"
+                      : "#3F3F46",
+                    borderRadius: 999,
+                    height: 26,
+                    justifyContent: "center",
+                    paddingHorizontal: 3,
+                    width: 48,
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: 999,
+                      height: 20,
+                      width: 20,
+                    }}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={saveTunnelConfiguration}
+                disabled={isSavingTunnel}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: isSavingTunnel ? "#4B5563" : "#22C55E",
+                  borderRadius: RADIUS.BUTTON,
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  marginTop: 4,
+                  paddingVertical: 14,
+                }}
+              >
+                {isSavingTunnel ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text
+                    style={{
+                      color: "#ffffff",
+                      fontSize: 15,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Save Tunnel
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 });
+
+TunnelManager.displayName = "TunnelManager";
 
 export default TunnelManager;
