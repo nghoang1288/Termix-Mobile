@@ -54,7 +54,10 @@
         {
           "android": {
             "newArchEnabled": true,
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "packagingOptions": {
+              "exclude": ["META-INF/versions/9/OSGI-INF/MANIFEST.MF"]
+            }
           },
           "ios": {
             "newArchEnabled": true,
