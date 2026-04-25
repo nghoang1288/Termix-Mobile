@@ -2,15 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   TextInput,
-  TouchableWithoutFeedback,
-  Pressable,
   Dimensions,
   BackHandler,
   AppState,
@@ -19,7 +13,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useTerminalSessions } from "@/app/contexts/TerminalSessionsContext";
+import {
+  TerminalSession,
+  useTerminalSessions,
+} from "@/app/contexts/TerminalSessionsContext";
 import { useKeyboard } from "@/app/contexts/KeyboardContext";
 import {
   Terminal,
@@ -40,15 +37,12 @@ import {
 import TabBar from "@/app/tabs/sessions/navigation/TabBar";
 import BottomToolbar from "@/app/tabs/sessions/terminal/keyboard/BottomToolbar";
 import KeyboardBar from "@/app/tabs/sessions/terminal/keyboard/KeyboardBar";
-import { ArrowLeft } from "lucide-react-native";
 import { useOrientation } from "@/app/utils/orientation";
 import { getMaxKeyboardHeight, getTabBarHeight } from "@/app/utils/responsive";
-import {
-  BACKGROUNDS,
-  BORDER_COLORS,
-  BORDERS,
-} from "@/app/constants/designTokens";
+import { BACKGROUNDS, BORDER_COLORS } from "@/app/constants/designTokens";
 import { addKeyCommandListener } from "@/modules/hardware-keyboard";
+
+type SessionType = TerminalSession["type"];
 
 export default function Sessions() {
   const insets = useSafeAreaInsets();
@@ -88,7 +82,7 @@ export default function Sessions() {
   const [screenDimensions, setScreenDimensions] = useState(
     Dimensions.get("window"),
   );
-  const [keyboardType, setKeyboardType] = useState<any>("default");
+  const keyboardType = "default";
   const [hiddenInputValue, setHiddenInputValue] = useState("");
   const dictationBufferRef = useRef("");
   const dictationSentRef = useRef("");
@@ -99,7 +93,6 @@ export default function Sessions() {
     dictationSentRef.current = "";
     setHiddenInputValue("");
   }, [activeSessionId]);
-  const lastBlurTimeRef = useRef<number>(0);
   const [terminalBackgroundColors, setTerminalBackgroundColors] = useState<
     Record<string, string>
   >({});
@@ -125,6 +118,10 @@ export default function Sessions() {
   const KEYBOARD_BAR_HEIGHT = isLandscape ? 48 : 52;
   const KEYBOARD_BAR_HEIGHT_EXTENDED = isLandscape ? 64 : 68;
 
+  const activeSession = sessions.find(
+    (session) => session.id === activeSessionId,
+  );
+
   const getTabBarBottomPosition = () => {
     if (activeSession?.type !== "terminal") {
       return insets.bottom;
@@ -145,9 +142,7 @@ export default function Sessions() {
     return KEYBOARD_BAR_HEIGHT;
   };
 
-  const getBottomMargin = (
-    sessionType: "terminal" | "stats" | "filemanager" = "terminal",
-  ) => {
+  const getBottomMargin = (sessionType: SessionType = "terminal") => {
     if (sessionType !== "terminal") {
       return SESSION_TAB_BAR_HEIGHT + insets.bottom;
     }
@@ -280,7 +275,12 @@ export default function Sessions() {
     return () => {
       subscription.remove();
     };
-  }, [sessions, activeSession?.type, isCustomKeyboardVisible]);
+  }, [
+    sessions,
+    activeSession?.type,
+    isCustomKeyboardVisible,
+    keyboardIntentionallyHiddenRef,
+  ]);
 
   useEffect(() => {
     if (Platform.OS === "android" && sessions.length > 0) {
@@ -300,7 +300,7 @@ export default function Sessions() {
         backHandler.remove();
       };
     }
-  }, [sessions.length, isKeyboardVisible]);
+  }, [sessions.length, isKeyboardVisible, setKeyboardIntentionallyHidden]);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener("change", ({ window }) => {
@@ -367,6 +367,7 @@ export default function Sessions() {
     activeSessionId,
     activeSession?.type,
     isCustomKeyboardVisible,
+    keyboardIntentionallyHiddenRef,
     setKeyboardIntentionallyHidden,
   ]);
 
@@ -521,10 +522,6 @@ export default function Sessions() {
       setActiveModifiers(modifiers);
     },
     [],
-  );
-
-  const activeSession = sessions.find(
-    (session) => session.id === activeSessionId,
   );
 
   const activeTerminalBgColor =

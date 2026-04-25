@@ -109,7 +109,7 @@ const TunnelCard: React.FC<TunnelCardProps> = ({
     statusValue === "RETRYING" ||
     statusValue === "WAITING";
 
-  const portMapping = `${tunnel.sourcePort} → ${tunnel.endpointHost}:${tunnel.endpointPort}`;
+  const portMapping = `${tunnel.sourcePort} -> ${tunnel.endpointHost}:${tunnel.endpointPort}`;
 
   return (
     <View

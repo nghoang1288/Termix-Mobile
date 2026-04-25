@@ -28,6 +28,15 @@ import {
   updateSSHHost,
 } from "../../../main-axios";
 import { showToast } from "../../../utils/toast";
+import {
+  getTerminalConnectionMode,
+  type TerminalConnectionMode,
+} from "@/app/tabs/sessions/terminal/terminal-connection-mode";
+import {
+  connectDirectTunnel,
+  disconnectDirectTunnel,
+  getDirectTunnelStatuses,
+} from "@/app/tabs/sessions/tunnel/DirectTunnelManager";
 import type {
   TunnelStatus,
   SSHHost,
@@ -57,6 +66,8 @@ export const TunnelManager = forwardRef<
   const [tunnelStatuses, setTunnelStatuses] = useState<
     Record<string, TunnelStatus>
   >({});
+  const [connectionMode, setConnectionMode] =
+    useState<TerminalConnectionMode>("direct");
   const [loadingTunnels, setLoadingTunnels] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -80,27 +91,41 @@ export const TunnelManager = forwardRef<
 
   const padding = getResponsivePadding(isLandscape);
   const columnCount = getColumnCount(width, isLandscape, 350);
+  const isDirectMode = connectionMode === "direct";
 
-  const fetchTunnelStatuses = useCallback(async (showLoadingSpinner = true) => {
-    try {
-      if (showLoadingSpinner) {
-        setIsLoading(true);
-      }
-      setError(null);
+  useEffect(() => {
+    if (!isVisible) return;
 
-      const statuses = await getTunnelStatuses();
-      setTunnelStatuses(statuses);
-    } catch (err: any) {
-      const errorMessage = err?.message || "Failed to fetch tunnel statuses";
-      setError(errorMessage);
-      if (showLoadingSpinner) {
-        showToast.error(errorMessage);
+    getTerminalConnectionMode("direct")
+      .then(setConnectionMode)
+      .catch(() => setConnectionMode("direct"));
+  }, [isVisible]);
+
+  const fetchTunnelStatuses = useCallback(
+    async (showLoadingSpinner = true) => {
+      try {
+        if (showLoadingSpinner) {
+          setIsLoading(true);
+        }
+        setError(null);
+
+        const statuses = isDirectMode
+          ? getDirectTunnelStatuses()
+          : await getTunnelStatuses();
+        setTunnelStatuses(statuses);
+      } catch (err: any) {
+        const errorMessage = err?.message || "Failed to fetch tunnel statuses";
+        setError(errorMessage);
+        if (showLoadingSpinner) {
+          showToast.error(errorMessage);
+        }
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+    },
+    [isDirectMode],
+  );
 
   const fetchAllHosts = useCallback(async () => {
     try {
@@ -168,6 +193,29 @@ export const TunnelManager = forwardRef<
 
     try {
       if (action === "connect") {
+        const fullHost = allHosts.find((h) => h.id === currentHostConfig.id);
+        if (!fullHost) {
+          throw new Error("Source host not found");
+        }
+
+        if (isDirectMode) {
+          const endpointHost = allHosts.find(
+            (h) =>
+              h.name === tunnel.endpointHost ||
+              `${h.username}@${h.ip}` === tunnel.endpointHost,
+          );
+          const directTunnel = endpointHost
+            ? { ...tunnel, endpointHost: endpointHost.ip }
+            : tunnel;
+
+          await connectDirectTunnel(tunnelName, fullHost, directTunnel);
+          setTunnelStatuses(getDirectTunnelStatuses());
+          showToast.success(
+            `Direct tunnel listening on 127.0.0.1:${tunnel.sourcePort} -> ${directTunnel.endpointHost}:${directTunnel.endpointPort}`,
+          );
+          return;
+        }
+
         const endpointHost = allHosts.find(
           (h) =>
             h.name === tunnel.endpointHost ||
@@ -176,11 +224,6 @@ export const TunnelManager = forwardRef<
 
         if (!endpointHost) {
           throw new Error(`Endpoint host not found: ${tunnel.endpointHost}`);
-        }
-
-        const fullHost = allHosts.find((h) => h.id === currentHostConfig.id);
-        if (!fullHost) {
-          throw new Error("Source host not found");
         }
 
         const tunnelConfig = {
@@ -228,11 +271,29 @@ export const TunnelManager = forwardRef<
         await connectTunnel(tunnelConfig);
         showToast.success(`Connecting tunnel on port ${tunnel.sourcePort}`);
       } else if (action === "disconnect") {
-        await disconnectTunnel(tunnelName);
-        showToast.success(`Disconnecting tunnel on port ${tunnel.sourcePort}`);
+        if (isDirectMode) {
+          await disconnectDirectTunnel(tunnelName);
+          setTunnelStatuses(getDirectTunnelStatuses());
+          showToast.success(
+            `Disconnected direct tunnel on port ${tunnel.sourcePort}`,
+          );
+        } else {
+          await disconnectTunnel(tunnelName);
+          showToast.success(
+            `Disconnecting tunnel on port ${tunnel.sourcePort}`,
+          );
+        }
       } else if (action === "cancel") {
-        await cancelTunnel(tunnelName);
-        showToast.success(`Cancelling tunnel on port ${tunnel.sourcePort}`);
+        if (isDirectMode) {
+          await disconnectDirectTunnel(tunnelName);
+          setTunnelStatuses(getDirectTunnelStatuses());
+          showToast.success(
+            `Cancelled direct tunnel on port ${tunnel.sourcePort}`,
+          );
+        } else {
+          await cancelTunnel(tunnelName);
+          showToast.success(`Cancelling tunnel on port ${tunnel.sourcePort}`);
+        }
       }
 
       await fetchTunnelStatuses(false);
@@ -422,7 +483,11 @@ export const TunnelManager = forwardRef<
 
             try {
               if (status?.connected) {
-                await disconnectTunnel(tunnelName);
+                if (isDirectMode) {
+                  await disconnectDirectTunnel(tunnelName);
+                } else {
+                  await disconnectTunnel(tunnelName);
+                }
               }
 
               const updatedHost = await updateSSHHost(
@@ -638,6 +703,9 @@ export const TunnelManager = forwardRef<
                 SSH Tunnels
               </Text>
               <Text style={{ color: "#9CA3AF", fontSize: 14, marginTop: 4 }}>
+                {isDirectMode
+                  ? "Direct SSH mode - phone opens local forwards. "
+                  : ""}
                 {currentHostConfig.tunnelConnections.length} tunnel
                 {currentHostConfig.tunnelConnections.length !== 1
                   ? "s"
@@ -868,7 +936,7 @@ export const TunnelManager = forwardRef<
                   onChangeText={(endpointHost) =>
                     setTunnelForm((form) => ({ ...form, endpointHost }))
                   }
-                  placeholder="Existing host name"
+                  placeholder="Existing host name or host/IP"
                   placeholderTextColor="#71717A"
                   autoCapitalize="none"
                   autoCorrect={false}

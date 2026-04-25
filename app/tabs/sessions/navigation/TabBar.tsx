@@ -18,7 +18,6 @@ import {
 } from "lucide-react-native";
 import { TerminalSession } from "@/app/contexts/TerminalSessionsContext";
 import { useRouter } from "expo-router";
-import { useKeyboard } from "@/app/contexts/KeyboardContext";
 import { useOrientation } from "@/app/utils/orientation";
 import { getTabBarHeight, getButtonSize } from "@/app/utils/responsive";
 import {
@@ -40,7 +39,7 @@ interface TabBarProps {
   onHideKeyboard?: () => void;
   onShowKeyboard?: () => void;
   keyboardIntentionallyHiddenRef: React.MutableRefObject<boolean>;
-  activeSessionType?: "terminal" | "stats" | "filemanager";
+  activeSessionType?: TerminalSession["type"];
 }
 
 export default function TabBar({
@@ -58,7 +57,6 @@ export default function TabBar({
   activeSessionType,
 }: TabBarProps) {
   const router = useRouter();
-  const { isKeyboardVisible } = useKeyboard();
   const { isLandscape } = useOrientation();
   const insets = useSafeAreaInsets();
 

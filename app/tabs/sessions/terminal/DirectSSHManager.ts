@@ -1,9 +1,18 @@
-import SSHClient, { PtyType } from "@dylankenneally/react-native-ssh-sftp";
+import SSHClient, {
+  PtyType,
+  type HostKeyResult,
+} from "@dylankenneally/react-native-ssh-sftp";
 import { getSSHHostWithCredentials } from "../../../main-axios";
 import type {
   NativeWSConfig,
   TerminalHostConfig,
 } from "./NativeWebSocketManager";
+import {
+  buildDirectHostKeyData,
+  getKnownDirectHostKey,
+  isDirectHostKeyTrusted,
+  saveDirectHostKey,
+} from "./direct-host-keys";
 
 type DirectAuthConfig = TerminalHostConfig & {
   password?: string | null;
@@ -21,6 +30,7 @@ export class DirectSSHManager {
   private cols = 80;
   private rows = 24;
   private hasNotifiedFailure = false;
+  private pendingHostKeyDecision: ((accepted: boolean) => void) | null = null;
 
   constructor(config: NativeWSConfig) {
     this.config = config;
@@ -90,6 +100,13 @@ export class DirectSSHManager {
       }
 
       this.client = client;
+
+      const hostKeyAccepted = await this.verifyHostKey(host, port, client);
+      if (!hostKeyAccepted) {
+        client.disconnect();
+        throw new Error("Host key rejected");
+      }
+
       client.on("Shell", (event) => {
         if (this.destroyed || event == null) return;
         this.config.onData(String(event));
@@ -141,7 +158,11 @@ export class DirectSSHManager {
 
   sendTotpResponse(_code: string, _isPassword: boolean): void {}
 
-  sendHostKeyResponse(_action: "accept" | "reject"): void {}
+  sendHostKeyResponse(action: "accept" | "reject"): void {
+    if (!this.pendingHostKeyDecision) return;
+    this.pendingHostKeyDecision(action === "accept");
+    this.pendingHostKeyDecision = null;
+  }
 
   sendReconnectWithCredentials(
     credentials: { password?: string; sshKey?: string; keyPassword?: string },
@@ -186,6 +207,52 @@ export class DirectSSHManager {
     this.config.onConnectionFailed(
       `${this.hostConfig.name}: Direct SSH failed - ${message}`,
     );
+  }
+
+  private async verifyHostKey(
+    host: string,
+    port: number,
+    client: SSHClient,
+  ): Promise<boolean> {
+    const observed: HostKeyResult | null = await client
+      .getHostKey()
+      .catch(() => null);
+    if (!observed?.fingerprint) return true;
+
+    const knownHostKey = await getKnownDirectHostKey(host, port);
+    if (isDirectHostKeyTrusted(knownHostKey, observed)) {
+      return true;
+    }
+
+    const scenario = knownHostKey ? "changed" : "new";
+    const hostKeyData = buildDirectHostKeyData(
+      {
+        ...this.hostConfig,
+        ip: host,
+        port,
+      },
+      observed,
+      knownHostKey,
+    );
+
+    if (!this.config.onHostKeyVerificationRequired) {
+      return false;
+    }
+
+    this.config.onHostKeyVerificationRequired(scenario, hostKeyData);
+    const accepted = await this.waitForHostKeyDecision();
+
+    if (accepted) {
+      await saveDirectHostKey(host, port, observed);
+    }
+
+    return accepted;
+  }
+
+  private waitForHostKeyDecision(): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.pendingHostKeyDecision = resolve;
+    });
   }
 }
 

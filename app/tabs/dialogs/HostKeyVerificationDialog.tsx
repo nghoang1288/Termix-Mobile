@@ -19,7 +19,7 @@ import {
 import { useOrientation } from "@/app/utils/orientation";
 import { getResponsivePadding } from "@/app/utils/responsive";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { HostKeyData } from "./NativeWebSocketManager";
+import type { HostKeyData } from "@/app/tabs/sessions/terminal/NativeWebSocketManager";
 
 interface HostKeyVerificationDialogProps {
   visible: boolean;
@@ -29,7 +29,17 @@ interface HostKeyVerificationDialogProps {
   onReject: () => void;
 }
 
-const formatFingerprint = (fp: string) => fp.match(/.{1,2}/g)?.join(":") || fp;
+const formatFingerprint = (fp: string) => {
+  const value = fp.trim();
+  if (!value) return value;
+
+  if (/^[0-9a-f:]+$/i.test(value)) {
+    const normalized = value.replace(/:/g, "");
+    return normalized.match(/.{1,2}/g)?.join(":") || value;
+  }
+
+  return value;
+};
 
 const FingerprintRow: React.FC<{
   label: string;
@@ -44,7 +54,7 @@ const FingerprintRow: React.FC<{
       await Clipboard.setStringAsync(formatFingerprint(fingerprint));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (_) {}
+    } catch {}
   }, [fingerprint]);
 
   return (

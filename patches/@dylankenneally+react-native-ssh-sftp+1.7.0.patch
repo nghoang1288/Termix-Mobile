@@ -1,8 +1,16 @@
 diff --git a/node_modules/@dylankenneally/react-native-ssh-sftp/android/src/main/java/me/keeex/rnssh/RNSshClientModule.java b/node_modules/@dylankenneally/react-native-ssh-sftp/android/src/main/java/me/keeex/rnssh/RNSshClientModule.java
-index 89a0053..97d813c 100644
+index 89a0053..b65ff9a 100644
 --- a/node_modules/@dylankenneally/react-native-ssh-sftp/android/src/main/java/me/keeex/rnssh/RNSshClientModule.java
 +++ b/node_modules/@dylankenneally/react-native-ssh-sftp/android/src/main/java/me/keeex/rnssh/RNSshClientModule.java
-@@ -33,6 +33,7 @@ import java.io.File;
+@@ -21,6 +21,7 @@ import com.jcraft.jsch.ChannelExec;
+ import com.jcraft.jsch.ChannelSftp;
+ import com.jcraft.jsch.ChannelSftp.LsEntry;
+ import com.jcraft.jsch.ChannelShell;
++import com.jcraft.jsch.HostKey;
+ import com.jcraft.jsch.JSch;
+ import com.jcraft.jsch.JSchException;
+ import com.jcraft.jsch.Session;
+@@ -33,6 +34,7 @@ import java.io.File;
  import java.io.IOException;
  import java.io.InputStream;
  import java.io.InputStreamReader;
@@ -10,7 +18,133 @@ index 89a0053..97d813c 100644
  import java.util.HashMap;
  import java.util.Locale;
  import java.util.Map;
-@@ -300,14 +301,13 @@ public class RNSshClientModule extends ReactContextBaseJavaModule {
+@@ -278,6 +280,125 @@ public class RNSshClientModule extends ReactContextBaseJavaModule {
+     }).start();
+   }
+ 
++  @ReactMethod
++  public void getHostKey(final String key, final Callback callback) {
++    new Thread(new Runnable() {
++      public void run() {
++        try {
++          SSHClient client = clientPool.get(key);
++          if (client == null || client._session == null) {
++            throw new Exception("client is null");
++          }
++
++          HostKey hostKey = client._session.getHostKey();
++          if (hostKey == null) {
++            throw new Exception("host key is not available");
++          }
++
++          WritableMap response = Arguments.createMap();
++          response.putString("host", hostKey.getHost());
++          response.putString("type", hostKey.getType());
++          response.putString("fingerprint", hostKey.getFingerPrint(new JSch()));
++          callback.invoke(null, response);
++        } catch (Exception error) {
++          Log.e(LOGTAG, "Error reading host key: " + error.getMessage());
++          callback.invoke(error.getMessage());
++        }
++      }
++    }).start();
++  }
++
++  @ReactMethod
++  public void startLocalPortForwarding(final String bindAddress, final Integer localPort, final String remoteHost, final Integer remotePort, final String key, final Callback callback) {
++    new Thread(new Runnable() {
++      public void run() {
++        try {
++          SSHClient client = clientPool.get(key);
++          if (client == null || client._session == null) {
++            throw new Exception("client is null");
++          }
++
++          int boundPort = client._session.setPortForwardingL(bindAddress, localPort, remoteHost, remotePort);
++          WritableMap response = Arguments.createMap();
++          response.putString("bindAddress", bindAddress);
++          response.putInt("localPort", localPort);
++          response.putString("remoteHost", remoteHost);
++          response.putInt("remotePort", remotePort);
++          response.putInt("boundPort", boundPort);
++          callback.invoke(null, response);
++        } catch (Exception error) {
++          Log.e(LOGTAG, "Error starting local port forwarding: " + error.getMessage());
++          callback.invoke(error.getMessage());
++        }
++      }
++    }).start();
++  }
++
++  @ReactMethod
++  public void stopLocalPortForwarding(final String bindAddress, final Integer localPort, final String key, final Callback callback) {
++    new Thread(new Runnable() {
++      public void run() {
++        try {
++          SSHClient client = clientPool.get(key);
++          if (client == null || client._session == null) {
++            throw new Exception("client is null");
++          }
++
++          client._session.delPortForwardingL(bindAddress, localPort);
++          callback.invoke();
++        } catch (Exception error) {
++          Log.e(LOGTAG, "Error stopping local port forwarding: " + error.getMessage());
++          callback.invoke(error.getMessage());
++        }
++      }
++    }).start();
++  }
++
++  @ReactMethod
++  public void startRemotePortForwarding(final String bindAddress, final Integer remotePort, final String localHost, final Integer localPort, final String key, final Callback callback) {
++    new Thread(new Runnable() {
++      public void run() {
++        try {
++          SSHClient client = clientPool.get(key);
++          if (client == null || client._session == null) {
++            throw new Exception("client is null");
++          }
++
++          client._session.setPortForwardingR(bindAddress, remotePort, localHost, localPort);
++          WritableMap response = Arguments.createMap();
++          response.putString("bindAddress", bindAddress);
++          response.putInt("remotePort", remotePort);
++          response.putString("localHost", localHost);
++          response.putInt("localPort", localPort);
++          callback.invoke(null, response);
++        } catch (Exception error) {
++          Log.e(LOGTAG, "Error starting remote port forwarding: " + error.getMessage());
++          callback.invoke(error.getMessage());
++        }
++      }
++    }).start();
++  }
++
++  @ReactMethod
++  public void stopRemotePortForwarding(final String bindAddress, final Integer remotePort, final String key, final Callback callback) {
++    new Thread(new Runnable() {
++      public void run() {
++        try {
++          SSHClient client = clientPool.get(key);
++          if (client == null || client._session == null) {
++            throw new Exception("client is null");
++          }
++
++          client._session.delPortForwardingR(bindAddress, remotePort);
++          callback.invoke();
++        } catch (Exception error) {
++          Log.e(LOGTAG, "Error stopping remote port forwarding: " + error.getMessage());
++          callback.invoke(error.getMessage());
++        }
++      }
++    }).start();
++  }
++
+   @ReactMethod
+   public void startShell(final String key, final String ptyType, final Callback callback) {
+     new Thread(new Runnable()  {
+@@ -300,14 +421,13 @@ public class RNSshClientModule extends ReactContextBaseJavaModule {
  
            callback.invoke();
  
@@ -29,3 +163,120 @@ index 89a0053..97d813c 100644
              sendEvent(reactContext, "Shell", map);
            }
  
+diff --git a/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.d.ts b/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.d.ts
+index 838b574..18f2e24 100644
+--- a/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.d.ts
++++ b/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.d.ts
+@@ -51,6 +51,24 @@ export interface keyDetail {
+     keyType: string;
+     keySize?: number;
+ }
++export interface HostKeyResult {
++    host: string;
++    type: string;
++    fingerprint: string;
++}
++export interface LocalPortForwardResult {
++    bindAddress: string;
++    localPort: number;
++    remoteHost: string;
++    remotePort: number;
++    boundPort: number;
++}
++export interface RemotePortForwardResult {
++    bindAddress: string;
++    remotePort: number;
++    localHost: string;
++    localPort: number;
++}
+ /**
+  * Represents a password or key for authentication.
+  */
+@@ -160,6 +178,11 @@ export default class SSHClient {
+      * @returns A promise that resolves with the response from the server.
+      */
+     execute(command: string, callback?: CallbackFunction<string>): Promise<string>;
++    getHostKey(callback?: CallbackFunction<HostKeyResult>): Promise<HostKeyResult>;
++    startLocalPortForwarding(bindAddress: string, localPort: number, remoteHost: string, remotePort: number, callback?: CallbackFunction<LocalPortForwardResult>): Promise<LocalPortForwardResult>;
++    stopLocalPortForwarding(bindAddress: string, localPort: number, callback?: CallbackFunction<void>): Promise<void>;
++    startRemotePortForwarding(bindAddress: string, remotePort: number, localHost: string, localPort: number, callback?: CallbackFunction<RemotePortForwardResult>): Promise<RemotePortForwardResult>;
++    stopRemotePortForwarding(bindAddress: string, remotePort: number, callback?: CallbackFunction<void>): Promise<void>;
+     /**
+      * Starts a shell session on the SSH server.
+      * @param ptyType - The type of pseudo-terminal to use for the shell session.
+diff --git a/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.js b/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.js
+index b25813c..d15fb0c 100644
+--- a/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.js
++++ b/node_modules/@dylankenneally/react-native-ssh-sftp/lib/sshclient.js
+@@ -225,6 +225,71 @@ export default class SSHClient {
+             });
+         });
+     }
++    getHostKey(callback) {
++        return new Promise((resolve, reject) => {
++            RNSSHClient.getHostKey(this._key, (error, response) => {
++                if (callback) {
++                    callback(error, response);
++                }
++                if (error) {
++                    return reject(error);
++                }
++                resolve(response);
++            });
++        });
++    }
++    startLocalPortForwarding(bindAddress, localPort, remoteHost, remotePort, callback) {
++        return new Promise((resolve, reject) => {
++            RNSSHClient.startLocalPortForwarding(bindAddress, localPort, remoteHost, remotePort, this._key, (error, response) => {
++                if (callback) {
++                    callback(error, response);
++                }
++                if (error) {
++                    return reject(error);
++                }
++                resolve(response);
++            });
++        });
++    }
++    stopLocalPortForwarding(bindAddress, localPort, callback) {
++        return new Promise((resolve, reject) => {
++            RNSSHClient.stopLocalPortForwarding(bindAddress, localPort, this._key, (error) => {
++                if (callback) {
++                    callback(error);
++                }
++                if (error) {
++                    return reject(error);
++                }
++                resolve();
++            });
++        });
++    }
++    startRemotePortForwarding(bindAddress, remotePort, localHost, localPort, callback) {
++        return new Promise((resolve, reject) => {
++            RNSSHClient.startRemotePortForwarding(bindAddress, remotePort, localHost, localPort, this._key, (error, response) => {
++                if (callback) {
++                    callback(error, response);
++                }
++                if (error) {
++                    return reject(error);
++                }
++                resolve(response);
++            });
++        });
++    }
++    stopRemotePortForwarding(bindAddress, remotePort, callback) {
++        return new Promise((resolve, reject) => {
++            RNSSHClient.stopRemotePortForwarding(bindAddress, remotePort, this._key, (error) => {
++                if (callback) {
++                    callback(error);
++                }
++                if (error) {
++                    return reject(error);
++                }
++                resolve();
++            });
++        });
++    }
+     /**
+      * Starts a shell session on the SSH server.
+      * @param ptyType - The type of pseudo-terminal to use for the shell session.
