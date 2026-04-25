@@ -1,0 +1,221 @@
+import SSHClient, { PtyType } from "@dylankenneally/react-native-ssh-sftp";
+import { getSSHHostWithCredentials } from "../../../main-axios";
+import type {
+  NativeWSConfig,
+  TerminalHostConfig,
+} from "./NativeWebSocketManager";
+
+type DirectAuthConfig = TerminalHostConfig & {
+  password?: string | null;
+  key?: string | null;
+  keyPassword?: string | null;
+  privateKey?: string | null;
+  sshKey?: string | null;
+};
+
+export class DirectSSHManager {
+  private config: NativeWSConfig;
+  private client: SSHClient | null = null;
+  private hostConfig: TerminalHostConfig;
+  private destroyed = false;
+  private cols = 80;
+  private rows = 24;
+  private hasNotifiedFailure = false;
+
+  constructor(config: NativeWSConfig) {
+    this.config = config;
+    this.hostConfig = config.hostConfig;
+  }
+
+  async connect(cols: number, rows: number): Promise<void> {
+    if (this.destroyed) return;
+
+    this.cols = cols;
+    this.rows = rows;
+    this.hasNotifiedFailure = false;
+    this.config.onStateChange("connecting");
+
+    try {
+      const authConfig = await this.resolveAuthConfig();
+      if (this.destroyed) return;
+
+      const host = authConfig.ip?.replace(/^\[|\]$/g, "");
+      const port = Number(authConfig.port || 22);
+      const username = authConfig.username;
+
+      if (!host || !username) {
+        throw new Error("Host or username is missing");
+      }
+
+      let client: SSHClient;
+      if (authConfig.authType === "password" && authConfig.password) {
+        client = await withTimeout(
+          SSHClient.connectWithPassword(
+            host,
+            port,
+            username,
+            authConfig.password,
+          ),
+          30000,
+          "Direct SSH connection timeout",
+        );
+      } else if (authConfig.authType === "key") {
+        const privateKey = normalizePrivateKey(
+          authConfig.key || authConfig.privateKey || authConfig.sshKey,
+        );
+        if (!privateKey) {
+          this.config.onAuthDialogNeeded("no_keyboard");
+          return;
+        }
+
+        client = await withTimeout(
+          SSHClient.connectWithKey(
+            host,
+            port,
+            username,
+            privateKey,
+            authConfig.keyPassword || undefined,
+          ),
+          30000,
+          "Direct SSH connection timeout",
+        );
+      } else {
+        this.config.onAuthDialogNeeded("no_keyboard");
+        return;
+      }
+
+      if (this.destroyed) {
+        client.disconnect();
+        return;
+      }
+
+      this.client = client;
+      client.on("Shell", (event) => {
+        if (this.destroyed || event == null) return;
+        this.config.onData(String(event));
+        this.config.onStateChange("dataReceived", {
+          hostName: this.hostConfig.name,
+          connectionMode: "direct",
+        });
+      });
+
+      await withTimeout(
+        client.startShell(PtyType.XTERM),
+        10000,
+        "Direct SSH shell startup timeout",
+      );
+
+      if (this.destroyed) return;
+
+      this.config.onStateChange("connected", {
+        hostName: this.hostConfig.name,
+        connectionMode: "direct",
+      });
+      this.config.onPostConnectionSetup();
+    } catch (error) {
+      if (this.destroyed) return;
+      this.notifyFailureOnce(formatError(error));
+    }
+  }
+
+  destroy(): void {
+    this.destroyed = true;
+    try {
+      this.client?.disconnect();
+    } catch {}
+    this.client = null;
+  }
+
+  sendInput(data: string): void {
+    if (!this.client || this.destroyed) return;
+
+    this.client.writeToShell(data).catch((error) => {
+      this.notifyFailureOnce(formatError(error));
+    });
+  }
+
+  sendResize(cols: number, rows: number): void {
+    this.cols = cols;
+    this.rows = rows;
+  }
+
+  sendTotpResponse(_code: string, _isPassword: boolean): void {}
+
+  sendHostKeyResponse(_action: "accept" | "reject"): void {}
+
+  sendReconnectWithCredentials(
+    credentials: { password?: string; sshKey?: string; keyPassword?: string },
+    cols: number,
+    rows: number,
+  ): void {
+    this.destroy();
+    this.destroyed = false;
+    this.hostConfig = {
+      ...this.hostConfig,
+      password: credentials.password,
+      key: credentials.sshKey,
+      keyPassword: credentials.keyPassword,
+      authType: credentials.password ? "password" : "key",
+    };
+    void this.connect(cols, rows);
+  }
+
+  notifyBackgrounded(): void {}
+
+  notifyForegrounded(): void {}
+
+  private async resolveAuthConfig(): Promise<DirectAuthConfig> {
+    if (this.hostConfig.authType !== "credential") {
+      return this.hostConfig;
+    }
+
+    const resolved = (await getSSHHostWithCredentials(
+      this.hostConfig.id,
+    )) as DirectAuthConfig;
+
+    return {
+      ...this.hostConfig,
+      ...resolved,
+      authType: resolved.authType === "credential" ? "none" : resolved.authType,
+    };
+  }
+
+  private notifyFailureOnce(message: string): void {
+    if (this.hasNotifiedFailure) return;
+    this.hasNotifiedFailure = true;
+    this.config.onConnectionFailed(
+      `${this.hostConfig.name}: Direct SSH failed - ${message}`,
+    );
+  }
+}
+
+function normalizePrivateKey(key: string | null | undefined): string {
+  return typeof key === "string"
+    ? key.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+    : "";
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Unknown error";
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}

@@ -8,11 +8,13 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "postinstall": "patch-package",
     "build-all": "eas build --platform all --profile development",
-    "build-android": "eas build --platform android --profile development",
+    "build-android": "eas build --platform android --profile preview",
     "build-ios": "eas build --platform ios --profile development"
   },
   "dependencies": {
+    "@dylankenneally/react-native-ssh-sftp": "^1.7.0",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -61,6 +63,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "patch-package": "^8.0.1",
     "typescript": "~5.9.2"
   },
   "private": true

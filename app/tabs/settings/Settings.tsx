@@ -1,26 +1,48 @@
+import { useEffect, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAppContext } from "@/app/AppContext";
 import { useTerminalSessions } from "@/app/contexts/TerminalSessionsContext";
-import { clearAuth, clearServerConfig, logoutUser } from "@/app/main-axios";
+import { clearAuth, logoutUser } from "@/app/main-axios";
+import {
+  getTerminalConnectionMode,
+  setTerminalConnectionMode,
+  type TerminalConnectionMode,
+} from "@/app/tabs/sessions/terminal/terminal-connection-mode";
 import { useOrientation } from "@/app/utils/orientation";
 import { getResponsivePadding } from "@/app/utils/responsive";
 
 export default function Settings() {
   const router = useRouter();
   const { isLandscape } = useOrientation();
-  const {
-    setAuthenticated,
-    setShowLoginForm,
-    setShowServerManager,
-    setSelectedServer,
-    selectedServer,
-  } = useAppContext();
+  const { setAuthenticated, setShowLoginForm, setShowServerManager } =
+    useAppContext();
   const { clearAllSessions } = useTerminalSessions();
   const insets = useSafeAreaInsets();
+  const [terminalConnectionMode, setLocalTerminalConnectionMode] =
+    useState<TerminalConnectionMode>("direct");
 
   const padding = getResponsivePadding(isLandscape);
+
+  useEffect(() => {
+    let mounted = true;
+
+    getTerminalConnectionMode("direct")
+      .then((mode) => {
+        if (mounted) setLocalTerminalConnectionMode(mode);
+      })
+      .catch((error) => {
+        console.error(
+          "[Settings] Failed to load terminal connection mode:",
+          error,
+        );
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -35,6 +57,22 @@ export default function Settings() {
       setShowServerManager(false);
     } catch (error) {
       console.error("[Settings] Error during logout:", error);
+    }
+  };
+
+  const toggleTerminalConnectionMode = async () => {
+    const previousMode = terminalConnectionMode;
+    const nextMode = previousMode === "direct" ? "relay" : "direct";
+    setLocalTerminalConnectionMode(nextMode);
+
+    try {
+      await setTerminalConnectionMode(nextMode);
+    } catch (error) {
+      console.error(
+        "[Settings] Failed to save terminal connection mode:",
+        error,
+      );
+      setLocalTerminalConnectionMode(previousMode);
     }
   };
 
@@ -66,7 +104,36 @@ export default function Settings() {
                 Font size and appearance
               </Text>
             </View>
-            <Text className="text-green-500 text-xl">→</Text>
+            <Text className="text-green-500 text-xl">{">"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={toggleTerminalConnectionMode}
+            className="bg-[#1a1a1a] border border-[#303032] px-6 py-4 rounded-lg flex-row items-center justify-between mt-3"
+          >
+            <View className="flex-1 pr-4">
+              <Text className="text-white font-semibold text-base">
+                Direct SSH Terminal
+              </Text>
+              <Text className="text-gray-400 text-sm mt-1">
+                {terminalConnectionMode === "direct"
+                  ? "Phone connects directly to SSH hosts"
+                  : "Termix server relays SSH sessions"}
+              </Text>
+            </View>
+            <View
+              className={`w-12 h-7 rounded-full p-1 ${
+                terminalConnectionMode === "direct"
+                  ? "bg-green-500"
+                  : "bg-[#303032]"
+              }`}
+            >
+              <View
+                className={`h-5 w-5 rounded-full bg-white ${
+                  terminalConnectionMode === "direct" ? "ml-5" : "ml-0"
+                }`}
+              />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -88,7 +155,7 @@ export default function Settings() {
                 Layouts, keys, and preferences
               </Text>
             </View>
-            <Text className="text-green-500 text-xl">→</Text>
+            <Text className="text-green-500 text-xl">{">"}</Text>
           </TouchableOpacity>
         </View>
 

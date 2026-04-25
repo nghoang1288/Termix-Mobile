@@ -30,7 +30,9 @@ import {
   NativeWebSocketManager,
   type TerminalHostConfig,
   type HostKeyData,
+  type NativeWSConfig,
 } from "./NativeWebSocketManager";
+import { DirectSSHManager } from "./DirectSSHManager";
 import CommandAutocomplete from "./CommandAutocomplete";
 import {
   applyInputToTrackedCommand,
@@ -42,6 +44,10 @@ import {
   type CommandAutocompleteSuggestion,
   type SnippetAutocompleteSource,
 } from "./terminal-autocomplete";
+import {
+  getTerminalConnectionMode,
+  type TerminalConnectionMode,
+} from "./terminal-connection-mode";
 
 interface TerminalProps {
   hostConfig: {
@@ -74,6 +80,8 @@ export type TerminalHandle = {
   isSelecting: () => boolean;
 };
 
+type TerminalConnectionManager = NativeWebSocketManager | DirectSSHManager;
+
 const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
   (
     {
@@ -86,7 +94,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     ref,
   ) => {
     const webViewRef = useRef<WebView>(null);
-    const wsManagerRef = useRef<NativeWebSocketManager | null>(null);
+    const connectionManagerRef = useRef<TerminalConnectionManager | null>(null);
     const terminalColsRef = useRef(80);
     const terminalRowsRef = useRef(24);
     const pendingDataRef = useRef<string[]>([]);
@@ -95,6 +103,9 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     );
 
     const { config } = useTerminalCustomization();
+    const [connectionMode, setConnectionMode] =
+      useState<TerminalConnectionMode>("direct");
+    const [connectionModeLoaded, setConnectionModeLoaded] = useState(false);
     const [webViewKey, setWebViewKey] = useState(0);
     const [screenDimensions, setScreenDimensions] = useState(
       Dimensions.get("window"),
@@ -164,6 +175,22 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         },
       );
       return () => subscription.remove();
+    }, []);
+
+    useEffect(() => {
+      let mounted = true;
+      getTerminalConnectionMode("direct")
+        .then((mode) => {
+          if (mounted) setConnectionMode(mode);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (mounted) setConnectionModeLoaded(true);
+        });
+
+      return () => {
+        mounted = false;
+      };
     }, []);
 
     useEffect(() => {
@@ -684,12 +711,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 </body>
 </html>
     `;
-    }, [
-      hostConfig,
-      screenDimensions,
-      config.fontSize,
-      onBackgroundColorChange,
-    ]);
+    }, [hostConfig, screenDimensions, config, onBackgroundColorChange]);
 
     useEffect(() => {
       setHtmlContent(generateHTML());
@@ -798,7 +820,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           selectedCommand,
         );
 
-        wsManagerRef.current?.sendInput(insertText);
+        connectionManagerRef.current?.sendInput(insertText);
         commandInputRef.current = selectedCommand;
         hideAutocomplete();
       },
@@ -887,7 +909,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         if (handleAutocompleteInput(data)) return;
 
         trackCommandInput(data);
-        wsManagerRef.current?.sendInput(data);
+        connectionManagerRef.current?.sendInput(data);
         scheduleAutocompleteRefresh(data);
       },
       [handleAutocompleteInput, scheduleAutocompleteRefresh, trackCommandInput],
@@ -907,7 +929,9 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
               () => {
                 const key = envVar.key;
                 const value = envVar.value;
-                wsManagerRef.current?.sendInput(`export ${key}="${value}"\n`);
+                connectionManagerRef.current?.sendInput(
+                  `export ${key}="${value}"\n`,
+                );
               },
               100 * (index + 1),
             );
@@ -924,7 +948,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                 (s: any) => s.id === terminalConfig.startupSnippetId,
               );
               if (snippet) {
-                wsManagerRef.current?.sendInput(`${snippet.content}\n`);
+                connectionManagerRef.current?.sendInput(`${snippet.content}\n`);
               }
             } catch (err) {
               console.warn("Failed to execute startup snippet:", err);
@@ -937,7 +961,9 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
             100 * (terminalConfig.environmentVariables?.length || 0) +
             (terminalConfig.startupSnippetId ? 400 : 200);
           setTimeout(() => {
-            wsManagerRef.current?.sendInput(`${terminalConfig.moshCommand!}\n`);
+            connectionManagerRef.current?.sendInput(
+              `${terminalConfig.moshCommand!}\n`,
+            );
           }, moshDelay);
         }
       }, 500);
@@ -945,7 +971,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 
     const handleTotpSubmit = useCallback(
       (code: string) => {
-        wsManagerRef.current?.sendTotpResponse(code, isPasswordPrompt);
+        connectionManagerRef.current?.sendTotpResponse(code, isPasswordPrompt);
         setTotpRequired(false);
         setTotpPrompt("");
         setIsPasswordPrompt(false);
@@ -960,7 +986,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         sshKey?: string;
         keyPassword?: string;
       }) => {
-        wsManagerRef.current?.sendReconnectWithCredentials(
+        connectionManagerRef.current?.sendReconnectWithCredentials(
           credentials,
           terminalColsRef.current,
           terminalRowsRef.current,
@@ -979,13 +1005,16 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           case "terminalReady":
             terminalColsRef.current = message.data.cols;
             terminalRowsRef.current = message.data.rows;
-            wsManagerRef.current?.connect(message.data.cols, message.data.rows);
+            connectionManagerRef.current?.connect(
+              message.data.cols,
+              message.data.rows,
+            );
             break;
 
           case "resize":
             terminalColsRef.current = message.data.cols;
             terminalRowsRef.current = message.data.rows;
-            wsManagerRef.current?.sendResize(
+            connectionManagerRef.current?.sendResize(
               message.data.cols,
               message.data.rows,
             );
@@ -1005,9 +1034,11 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     }, []);
 
     useEffect(() => {
-      wsManagerRef.current?.destroy();
+      if (!connectionModeLoaded) return;
 
-      wsManagerRef.current = new NativeWebSocketManager({
+      connectionManagerRef.current?.destroy();
+
+      const managerConfig: NativeWSConfig = {
         hostConfig: hostConfig as TerminalHostConfig,
         onStateChange: (state, data) => {
           switch (state) {
@@ -1076,7 +1107,12 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           if (onClose) onClose();
         },
         onConnectionFailed: (message) => handleConnectionFailure(message),
-      });
+      };
+
+      connectionManagerRef.current =
+        connectionMode === "direct"
+          ? new DirectSSHManager(managerConfig)
+          : new NativeWebSocketManager(managerConfig);
 
       setWebViewKey((prev) => prev + 1);
       setConnectionState("connecting");
@@ -1086,12 +1122,12 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       const html = generateHTML();
       setHtmlContent(html);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hostConfig.id]);
+    }, [hostConfig.id, connectionMode, connectionModeLoaded]);
 
     useEffect(() => {
       return () => {
-        wsManagerRef.current?.destroy();
-        wsManagerRef.current = null;
+        connectionManagerRef.current?.destroy();
+        connectionManagerRef.current = null;
         if (dataFlushTimerRef.current) {
           clearTimeout(dataFlushTimerRef.current);
           dataFlushTimerRef.current = null;
@@ -1118,23 +1154,23 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
             webViewRef.current?.injectJavaScript(
               `window.nativeFit && window.nativeFit(); true;`,
             );
-          } catch (e) {}
+          } catch {}
         },
         isDialogOpen: () => {
           return totpRequired || showAuthDialog || hostKeyVerification !== null;
         },
         notifyBackgrounded: () => {
-          wsManagerRef.current?.notifyBackgrounded();
+          connectionManagerRef.current?.notifyBackgrounded();
         },
         notifyForegrounded: () => {
-          wsManagerRef.current?.notifyForegrounded();
+          connectionManagerRef.current?.notifyForegrounded();
         },
         scrollToBottom: () => {
           try {
             webViewRef.current?.injectJavaScript(
               `window.resetScroll && window.resetScroll(); true;`,
             );
-          } catch (e) {}
+          } catch {}
         },
         isSelecting: () => {
           return isSelecting;
@@ -1372,11 +1408,11 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           scenario={hostKeyVerification?.scenario ?? "new"}
           data={hostKeyVerification?.data ?? null}
           onAccept={() => {
-            wsManagerRef.current?.sendHostKeyResponse("accept");
+            connectionManagerRef.current?.sendHostKeyResponse("accept");
             setHostKeyVerification(null);
           }}
           onReject={() => {
-            wsManagerRef.current?.sendHostKeyResponse("reject");
+            connectionManagerRef.current?.sendHostKeyResponse("reject");
             setHostKeyVerification(null);
             if (onClose) onClose();
           }}
