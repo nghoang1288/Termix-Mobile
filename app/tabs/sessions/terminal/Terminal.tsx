@@ -31,6 +31,17 @@ import {
   type TerminalHostConfig,
   type HostKeyData,
 } from "./NativeWebSocketManager";
+import CommandAutocomplete from "./CommandAutocomplete";
+import {
+  applyInputToTrackedCommand,
+  buildCommandAutocompleteSuggestions,
+  getAutocompleteInsertText,
+  loadTerminalCommandHistory,
+  recordTerminalCommand,
+  shouldRefreshAutocompleteForInput,
+  type CommandAutocompleteSuggestion,
+  type SnippetAutocompleteSource,
+} from "./terminal-autocomplete";
 
 interface TerminalProps {
   hostConfig: {
@@ -122,6 +133,23 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     const accessibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
       null,
     );
+    const commandInputRef = useRef("");
+    const commandHistoryRef = useRef<string[]>([]);
+    const autocompleteSnippetsRef = useRef<SnippetAutocompleteSource[]>([]);
+    const autocompleteSuggestionsRef = useRef<CommandAutocompleteSuggestion[]>(
+      [],
+    );
+    const autocompleteSelectedIndexRef = useRef(0);
+    const autocompleteVisibleRef = useRef(false);
+    const autocompleteRefreshTimerRef = useRef<ReturnType<
+      typeof setTimeout
+    > | null>(null);
+    const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<
+      CommandAutocompleteSuggestion[]
+    >([]);
+    const [autocompleteSelectedIndex, setAutocompleteSelectedIndex] =
+      useState(0);
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
 
     useEffect(() => {
       AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
@@ -137,6 +165,18 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       );
       return () => subscription.remove();
     }, []);
+
+    useEffect(() => {
+      autocompleteVisibleRef.current = showAutocomplete;
+    }, [showAutocomplete]);
+
+    useEffect(() => {
+      autocompleteSuggestionsRef.current = autocompleteSuggestions;
+    }, [autocompleteSuggestions]);
+
+    useEffect(() => {
+      autocompleteSelectedIndexRef.current = autocompleteSelectedIndex;
+    }, [autocompleteSelectedIndex]);
 
     const writeToAccessibility = useCallback((rawData: string) => {
       const cleaned = rawData
@@ -179,6 +219,40 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 
       return () => subscription?.remove();
     }, []);
+
+    useEffect(() => {
+      let isMounted = true;
+
+      commandInputRef.current = "";
+      autocompleteVisibleRef.current = false;
+      autocompleteSuggestionsRef.current = [];
+      autocompleteSelectedIndexRef.current = 0;
+      setShowAutocomplete(false);
+      setAutocompleteSuggestions([]);
+      setAutocompleteSelectedIndex(0);
+
+      const loadAutocompleteSources = async () => {
+        const [history, snippets] = await Promise.all([
+          loadTerminalCommandHistory(hostConfig.id),
+          getSnippets().catch(() => []),
+        ]);
+
+        if (!isMounted) return;
+
+        commandHistoryRef.current = history;
+        autocompleteSnippetsRef.current = Array.isArray(snippets)
+          ? (snippets as SnippetAutocompleteSource[])
+          : [];
+      };
+
+      loadAutocompleteSources().catch((error) => {
+        console.warn("Failed to load autocomplete sources:", error);
+      });
+
+      return () => {
+        isMounted = false;
+      };
+    }, [hostConfig.id]);
 
     const handleConnectionFailure = useCallback(
       (errorMessage: string) => {
@@ -622,6 +696,203 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const hideAutocomplete = useCallback(() => {
+      autocompleteVisibleRef.current = false;
+      autocompleteSuggestionsRef.current = [];
+      autocompleteSelectedIndexRef.current = 0;
+      setShowAutocomplete(false);
+      setAutocompleteSuggestions([]);
+      setAutocompleteSelectedIndex(0);
+    }, []);
+
+    const getAutocompleteMatches = useCallback(
+      (input = commandInputRef.current) => {
+        return buildCommandAutocompleteSuggestions(input, {
+          history: commandHistoryRef.current,
+          snippets: autocompleteSnippetsRef.current,
+          limit: 7,
+        });
+      },
+      [],
+    );
+
+    const showAutocompleteForCurrentCommand = useCallback(() => {
+      const matches = getAutocompleteMatches();
+
+      if (matches.length === 0) {
+        hideAutocomplete();
+        return false;
+      }
+
+      autocompleteVisibleRef.current = true;
+      autocompleteSuggestionsRef.current = matches;
+      autocompleteSelectedIndexRef.current = 0;
+      setAutocompleteSuggestions(matches);
+      setAutocompleteSelectedIndex(0);
+      setShowAutocomplete(true);
+      return true;
+    }, [getAutocompleteMatches, hideAutocomplete]);
+
+    const scheduleAutocompleteRefresh = useCallback(
+      (data: string) => {
+        if (!shouldRefreshAutocompleteForInput(data)) return;
+
+        if (autocompleteRefreshTimerRef.current) {
+          clearTimeout(autocompleteRefreshTimerRef.current);
+        }
+
+        autocompleteRefreshTimerRef.current = setTimeout(() => {
+          autocompleteRefreshTimerRef.current = null;
+          showAutocompleteForCurrentCommand();
+        }, 80);
+      },
+      [showAutocompleteForCurrentCommand],
+    );
+
+    const persistSubmittedCommands = useCallback(
+      (commands: string[]) => {
+        if (commands.length === 0) return;
+
+        void (async () => {
+          let latestHistory = commandHistoryRef.current;
+          for (const command of commands) {
+            latestHistory = await recordTerminalCommand(hostConfig.id, command);
+          }
+          commandHistoryRef.current = latestHistory;
+        })().catch((error) => {
+          console.warn("Failed to save command history:", error);
+        });
+      },
+      [hostConfig.id],
+    );
+
+    const trackCommandInput = useCallback(
+      (data: string) => {
+        const update = applyInputToTrackedCommand(
+          commandInputRef.current,
+          data,
+        );
+
+        if (!update.changed && update.submittedCommands.length === 0) return;
+
+        commandInputRef.current = update.command;
+
+        if (update.submittedCommands.length > 0) {
+          hideAutocomplete();
+          persistSubmittedCommands(update.submittedCommands);
+          return;
+        }
+
+        if (!commandInputRef.current.trim()) {
+          hideAutocomplete();
+        }
+      },
+      [hideAutocomplete, persistSubmittedCommands],
+    );
+
+    const applyAutocompleteSuggestion = useCallback(
+      (suggestion: CommandAutocompleteSuggestion) => {
+        const selectedCommand = suggestion.value;
+        const insertText = getAutocompleteInsertText(
+          commandInputRef.current,
+          selectedCommand,
+        );
+
+        wsManagerRef.current?.sendInput(insertText);
+        commandInputRef.current = selectedCommand;
+        hideAutocomplete();
+      },
+      [hideAutocomplete],
+    );
+
+    const cycleAutocompleteSelection = useCallback((direction: 1 | -1) => {
+      const suggestions = autocompleteSuggestionsRef.current;
+      if (suggestions.length === 0) return;
+
+      setAutocompleteSelectedIndex((current) => {
+        const next =
+          (current + direction + suggestions.length) % suggestions.length;
+        autocompleteSelectedIndexRef.current = next;
+        return next;
+      });
+    }, []);
+
+    const handleAutocompleteInput = useCallback(
+      (data: string) => {
+        const suggestions = autocompleteSuggestionsRef.current;
+
+        if (autocompleteVisibleRef.current && suggestions.length > 0) {
+          if (data === "\x1b") {
+            hideAutocomplete();
+            return true;
+          }
+
+          if (data === "\r" || data === "\n") {
+            applyAutocompleteSuggestion(
+              suggestions[autocompleteSelectedIndexRef.current] ||
+                suggestions[0],
+            );
+            return true;
+          }
+
+          if (data === "\t") {
+            cycleAutocompleteSelection(1);
+            return true;
+          }
+
+          if (data === "\x1b[A") {
+            cycleAutocompleteSelection(-1);
+            return true;
+          }
+
+          if (data === "\x1b[B") {
+            cycleAutocompleteSelection(1);
+            return true;
+          }
+        }
+
+        if (data === "\t") {
+          const matches = getAutocompleteMatches();
+
+          if (matches.length === 0) {
+            return false;
+          }
+
+          if (matches.length === 1) {
+            applyAutocompleteSuggestion(matches[0]);
+            return true;
+          }
+
+          autocompleteVisibleRef.current = true;
+          autocompleteSuggestionsRef.current = matches;
+          autocompleteSelectedIndexRef.current = 0;
+          setAutocompleteSuggestions(matches);
+          setAutocompleteSelectedIndex(0);
+          setShowAutocomplete(true);
+          return true;
+        }
+
+        return false;
+      },
+      [
+        applyAutocompleteSuggestion,
+        cycleAutocompleteSelection,
+        getAutocompleteMatches,
+        hideAutocomplete,
+      ],
+    );
+
+    const sendTerminalInput = useCallback(
+      (data: string) => {
+        if (handleAutocompleteInput(data)) return;
+
+        trackCommandInput(data);
+        wsManagerRef.current?.sendInput(data);
+        scheduleAutocompleteRefresh(data);
+      },
+      [handleAutocompleteInput, scheduleAutocompleteRefresh, trackCommandInput],
+    );
+
     const handlePostConnectionSetup = useCallback(async () => {
       const terminalConfig: Partial<TerminalConfig> = {
         ...MOBILE_DEFAULT_TERMINAL_CONFIG,
@@ -829,6 +1100,10 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           clearTimeout(accessibilityTimerRef.current);
           accessibilityTimerRef.current = null;
         }
+        if (autocompleteRefreshTimerRef.current) {
+          clearTimeout(autocompleteRefreshTimerRef.current);
+          autocompleteRefreshTimerRef.current = null;
+        }
       };
     }, []);
 
@@ -836,7 +1111,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       ref,
       () => ({
         sendInput: (data: string) => {
-          wsManagerRef.current?.sendInput(data);
+          sendTerminalInput(data);
         },
         fit: () => {
           try {
@@ -865,7 +1140,13 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           return isSelecting;
         },
       }),
-      [totpRequired, showAuthDialog, hostKeyVerification, isSelecting],
+      [
+        totpRequired,
+        showAuthDialog,
+        hostKeyVerification,
+        isSelecting,
+        sendTerminalInput,
+      ],
     );
 
     return (
@@ -925,7 +1206,6 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
               cacheMode="LOAD_NO_CACHE"
               androidLayerType="hardware"
               onScroll={(event) => {}}
-              scrollEventThrottle={16}
               onMessage={handleWebViewMessage}
               onError={(syntheticEvent) => {
                 const { nativeEvent } = syntheticEvent;
@@ -1027,6 +1307,19 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
               </View>
             </View>
           )}
+
+          {showAutocomplete &&
+            autocompleteSuggestions.length > 0 &&
+            connectionState === "connected" &&
+            !totpRequired &&
+            !showAuthDialog &&
+            hostKeyVerification === null && (
+              <CommandAutocomplete
+                suggestions={autocompleteSuggestions}
+                selectedIndex={autocompleteSelectedIndex}
+                onSelect={applyAutocompleteSuggestion}
+              />
+            )}
         </View>
 
         {isScreenReaderEnabled && (
