@@ -62,6 +62,7 @@ interface TerminalProps {
     keyPassword?: string;
     keyType?: string;
     credentialId?: number;
+    overrideCredentialUsername?: boolean;
     terminalConfig?: Partial<TerminalConfig>;
   };
   isVisible: boolean;

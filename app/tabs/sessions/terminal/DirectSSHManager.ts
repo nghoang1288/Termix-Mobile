@@ -2,7 +2,10 @@ import SSHClient, {
   PtyType,
   type HostKeyResult,
 } from "@dylankenneally/react-native-ssh-sftp";
-import { getSSHHostWithCredentials } from "../../../main-axios";
+import {
+  getCredentialDetails,
+  getSSHHostWithCredentials,
+} from "../../../main-axios";
 import type {
   NativeWSConfig,
   TerminalHostConfig,
@@ -13,6 +16,11 @@ import {
   isDirectHostKeyTrusted,
   saveDirectHostKey,
 } from "./direct-host-keys";
+import {
+  directAuthUnavailable,
+  mergeCredentialDetails,
+  normalizeDirectAuthConfig,
+} from "./direct-auth";
 
 type DirectAuthConfig = TerminalHostConfig & {
   password?: string | null;
@@ -190,15 +198,32 @@ export class DirectSSHManager {
       return this.hostConfig;
     }
 
-    const resolved = (await getSSHHostWithCredentials(
-      this.hostConfig.id,
-    )) as DirectAuthConfig;
+    const inlineAuthConfig = normalizeDirectAuthConfig(this.hostConfig);
+    if (inlineAuthConfig.authType !== "credential") {
+      return inlineAuthConfig;
+    }
 
-    return {
-      ...this.hostConfig,
-      ...resolved,
-      authType: resolved.authType === "credential" ? "none" : resolved.authType,
-    };
+    try {
+      const resolved = (await getSSHHostWithCredentials(
+        this.hostConfig.id,
+      )) as DirectAuthConfig;
+
+      return normalizeDirectAuthConfig({
+        ...this.hostConfig,
+        ...resolved,
+      });
+    } catch {}
+
+    if (this.hostConfig.credentialId) {
+      try {
+        const credential = await getCredentialDetails(
+          this.hostConfig.credentialId,
+        );
+        return mergeCredentialDetails(this.hostConfig, credential);
+      } catch {}
+    }
+
+    return directAuthUnavailable(this.hostConfig);
   }
 
   private notifyFailureOnce(message: string): void {

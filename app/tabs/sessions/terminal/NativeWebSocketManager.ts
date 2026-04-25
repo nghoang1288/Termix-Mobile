@@ -12,6 +12,7 @@ export interface TerminalHostConfig {
   keyPassword?: string;
   keyType?: string;
   credentialId?: number;
+  overrideCredentialUsername?: boolean;
 }
 
 export type WsState =
@@ -110,7 +111,7 @@ export class NativeWebSocketManager {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify({ type: "disconnect" }));
-      } catch (_) {}
+      } catch {}
     }
     this.serverSessionId = null;
     this.clearAllTimers();
@@ -126,7 +127,7 @@ export class NativeWebSocketManager {
         ) {
           this.ws.close(1000, "Component unmounted");
         }
-      } catch (_) {}
+      } catch {}
       this.ws = null;
     }
   }
@@ -135,7 +136,7 @@ export class NativeWebSocketManager {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify({ type: "input", data }));
-      } catch (e) {}
+      } catch {}
     }
   }
 
@@ -145,7 +146,7 @@ export class NativeWebSocketManager {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify({ type: "resize", data: { cols, rows } }));
-      } catch (e) {}
+      } catch {}
     }
   }
 
@@ -154,7 +155,7 @@ export class NativeWebSocketManager {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify({ type: responseType, data: { code } }));
-      } catch (e) {}
+      } catch {}
     }
   }
 
@@ -167,7 +168,7 @@ export class NativeWebSocketManager {
             data: { action },
           }),
         );
-      } catch (e) {}
+      } catch {}
     }
   }
 
@@ -205,7 +206,7 @@ export class NativeWebSocketManager {
             data: messageData,
           }),
         );
-      } catch (e) {}
+      } catch {}
     }
   }
 
@@ -243,7 +244,7 @@ export class NativeWebSocketManager {
         this.ws.onopen = null;
         this.ws.onmessage = null;
         this.ws.close();
-      } catch (_) {}
+      } catch {}
       this.ws = null;
     }
     this.stopPingInterval();
@@ -277,7 +278,7 @@ export class NativeWebSocketManager {
         ) {
           this.ws.close();
         }
-      } catch (_) {}
+      } catch {}
     }
 
     this.config.onStateChange("connecting", {
@@ -292,7 +293,7 @@ export class NativeWebSocketManager {
         try {
           ws.onclose = null;
           ws.close();
-        } catch (_) {}
+        } catch {}
         if (
           !this.shouldNotReconnect &&
           this.reconnectAttempts < this.maxReconnectAttempts
@@ -399,7 +400,7 @@ export class NativeWebSocketManager {
             this.notifyFailureOnce("Authentication failed: " + message);
             try {
               ws.close(1000);
-            } catch (_) {}
+            } catch {}
             return;
           }
         } else if (msg.type === "connected") {
@@ -442,7 +443,7 @@ export class NativeWebSocketManager {
           this.shouldNotReconnect = true;
           this.config.onDisconnected(this.config.hostConfig.name);
         }
-      } catch (_) {
+      } catch {
         this.config.onData(event.data as string);
       }
     };
@@ -520,7 +521,7 @@ export class NativeWebSocketManager {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         try {
           this.ws.send(JSON.stringify({ type: "ping" }));
-        } catch (_) {}
+        } catch {}
       }
     }, 25000);
   }

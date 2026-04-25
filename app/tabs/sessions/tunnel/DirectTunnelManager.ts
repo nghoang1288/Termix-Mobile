@@ -2,7 +2,10 @@ import { Alert } from "react-native";
 import SSHClient, {
   type HostKeyResult,
 } from "@dylankenneally/react-native-ssh-sftp";
-import { getSSHHostWithCredentials } from "../../../main-axios";
+import {
+  getCredentialDetails,
+  getSSHHostWithCredentials,
+} from "../../../main-axios";
 import type {
   SSHHost,
   TunnelConnection,
@@ -15,6 +18,11 @@ import {
   isDirectHostKeyTrusted,
   saveDirectHostKey,
 } from "@/app/tabs/sessions/terminal/direct-host-keys";
+import {
+  directAuthUnavailable,
+  mergeCredentialDetails,
+  normalizeDirectAuthConfig,
+} from "@/app/tabs/sessions/terminal/direct-auth";
 
 type DirectTunnelHostConfig = SSHHost & {
   privateKey?: string | null;
@@ -146,14 +154,29 @@ async function resolveAuthConfig(
   host: SSHHost,
 ): Promise<DirectTunnelHostConfig> {
   if (host.authType === "credential") {
-    const resolved = (await getSSHHostWithCredentials(
-      host.id,
-    )) as DirectTunnelHostConfig;
-    return {
-      ...host,
-      ...resolved,
-      authType: resolved.authType === "credential" ? "none" : resolved.authType,
-    };
+    const inlineAuthConfig = normalizeDirectAuthConfig(host);
+    if (inlineAuthConfig.authType !== "credential") {
+      return inlineAuthConfig;
+    }
+
+    try {
+      const resolved = (await getSSHHostWithCredentials(
+        host.id,
+      )) as DirectTunnelHostConfig;
+      return normalizeDirectAuthConfig({
+        ...host,
+        ...resolved,
+      });
+    } catch {}
+
+    if (host.credentialId) {
+      try {
+        const credential = await getCredentialDetails(host.credentialId);
+        return mergeCredentialDetails(host, credential);
+      } catch {}
+    }
+
+    return directAuthUnavailable(host);
   }
 
   return host;
@@ -188,7 +211,9 @@ async function connectClient(
     );
   }
 
-  throw new Error("Direct tunnel requires password or key authentication");
+  throw new Error(
+    "Direct tunnel requires password or key authentication. Managed credential could not be resolved on this server.",
+  );
 }
 
 async function verifyDirectTunnelHostKey(

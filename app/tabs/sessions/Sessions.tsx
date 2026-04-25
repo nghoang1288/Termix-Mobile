@@ -568,6 +568,8 @@ export default function Sessions() {
                   credentialId: session.host.credentialId
                     ? parseInt(session.host.credentialId.toString())
                     : undefined,
+                  overrideCredentialUsername:
+                    session.host.overrideCredentialUsername,
                   terminalConfig: session.host.terminalConfig,
                 }}
                 isVisible={session.id === activeSessionId}
