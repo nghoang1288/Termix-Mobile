@@ -10,17 +10,53 @@ import {
   ScrollView,
 } from "react-native";
 import { useAppContext } from "../AppContext";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
-  setCookie,
+  clearAuth,
+  getCookie,
   getCurrentServerUrl,
   initializeServerConfig,
+  loginUser,
   saveServerConfig,
+  verifyTOTPLogin,
 } from "../main-axios";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { RefreshCw, Server as ServerIcon } from "lucide-react-native";
-import { WebView, WebViewNavigation } from "react-native-webview";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  LogIn,
+  Server as ServerIcon,
+  ShieldCheck,
+  User,
+} from "lucide-react-native";
+
+function normalizeServerUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error("Please enter a server address");
+  }
+
+  const withScheme = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `http://${trimmed}`;
+  const parsed = new URL(withScheme);
+
+  if (!parsed.hostname || !["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Server address must be a valid HTTP or HTTPS URL");
+  }
+
+  parsed.hash = "";
+  return parsed.toString().replace(/\/$/, "");
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Login failed. Please check the server address and credentials.";
+}
 
 export default function LoginForm() {
   const {
@@ -30,545 +66,341 @@ export default function LoginForm() {
     setSelectedServer,
   } = useAppContext();
   const insets = useSafeAreaInsets();
-  const webViewRef = useRef<WebView>(null);
-  const [url, setUrl] = useState("");
   const [serverAddress, setServerAddress] = useState("");
-  const [source, setSource] = useState<{ uri: string }>({ uri: "" });
-  const [webViewKey, setWebViewKey] = useState(() => String(Date.now()));
-  const [isSavingServer, setIsSavingServer] = useState(false);
-  const [showServerEditor, setShowServerEditor] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [totpCode, setTotpCode] = useState("");
+  const [pendingTotpToken, setPendingTotpToken] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const initializeLogin = async () => {
-      const existingToken = await AsyncStorage.getItem("jwt");
-      if (existingToken) {
-        try {
-          const { getUserInfo } = await import("../main-axios");
-          const userInfo = await getUserInfo();
+    let mounted = true;
 
-          if (userInfo && userInfo.username) {
-            if (userInfo.data_unlocked === false) {
-            } else {
-              setAuthenticated(true);
-              setShowLoginForm(false);
-              return;
-            }
-          }
-        } catch (error) {}
+    const initializeLogin = async () => {
+      const serverUrl = getCurrentServerUrl() || selectedServer?.ip || "";
+      if (mounted) {
+        setServerAddress(serverUrl);
       }
 
-      setWebViewKey(String(Date.now()));
+      const existingToken = await getCookie("jwt");
+      if (!existingToken) {
+        return;
+      }
 
-      const serverUrl = getCurrentServerUrl();
-      if (serverUrl) {
-        setServerAddress(serverUrl);
-        setSource({ uri: serverUrl });
-        setUrl(serverUrl);
-      } else if (selectedServer?.ip) {
-        setServerAddress(selectedServer.ip);
-        setSource({ uri: selectedServer.ip });
-        setUrl(selectedServer.ip);
-      } else {
-        setShowServerEditor(true);
+      try {
+        const { getUserInfo } = await import("../main-axios");
+        const userInfo = await getUserInfo();
+
+        if (mounted && userInfo?.username && userInfo.data_unlocked !== false) {
+          setAuthenticated(true);
+          setShowLoginForm(false);
+        }
+      } catch {
+        await clearAuth();
       }
     };
 
     initializeLogin();
-  }, [selectedServer]);
 
-  const handleSaveServerAddress = async () => {
-    const serverUrl = serverAddress.trim();
-    if (!serverUrl) {
-      Alert.alert("Error", "Please enter a server address");
+    return () => {
+      mounted = false;
+    };
+  }, [selectedServer, setAuthenticated, setShowLoginForm]);
+
+  const resetTotp = () => {
+    if (pendingTotpToken) {
+      setPendingTotpToken("");
+      setTotpCode("");
+    }
+  };
+
+  const completeLogin = async (serverUrl: string) => {
+    await initializeServerConfig();
+    setSelectedServer({
+      name: "Server",
+      ip: serverUrl,
+    });
+    setAuthenticated(true);
+    setShowLoginForm(false);
+  };
+
+  const handlePasswordLogin = async (serverUrl: string) => {
+    const cleanUsername = username.trim();
+
+    if (!cleanUsername) {
+      throw new Error("Please enter your username");
+    }
+
+    if (!password) {
+      throw new Error("Please enter your password");
+    }
+
+    await clearAuth();
+    await saveServerConfig({
+      serverUrl,
+      lastUpdated: new Date().toISOString(),
+    });
+
+    const response = await loginUser(cleanUsername, password);
+
+    if (response.requires_totp) {
+      const tempToken = response.temp_token || response.token;
+      if (!tempToken) {
+        throw new Error(
+          "TOTP is required, but the server did not return a temporary token",
+        );
+      }
+
+      setPendingTotpToken(tempToken);
+      setTotpCode("");
       return;
     }
 
-    if (!/^https?:\/\//.test(serverUrl)) {
-      Alert.alert(
-        "Error",
-        "Server address must start with http:// or https://",
+    const token = response.token || (await getCookie("jwt"));
+    if (!token) {
+      throw new Error(
+        "Login succeeded, but no authentication token was returned",
       );
+    }
+
+    await completeLogin(serverUrl);
+  };
+
+  const handleTotpLogin = async (serverUrl: string) => {
+    const cleanTotp = totpCode.trim();
+    if (!cleanTotp) {
+      throw new Error("Please enter your verification code");
+    }
+
+    const response = await verifyTOTPLogin(pendingTotpToken, cleanTotp);
+    const token = response.token || (await getCookie("jwt"));
+
+    if (!token) {
+      throw new Error(
+        "Verification succeeded, but no authentication token was returned",
+      );
+    }
+
+    await completeLogin(serverUrl);
+  };
+
+  const handleSubmit = async () => {
+    if (isSubmitting) {
       return;
     }
 
-    setIsSavingServer(true);
+    setIsSubmitting(true);
 
     try {
-      await saveServerConfig({
-        serverUrl,
-        lastUpdated: new Date().toISOString(),
-      });
+      const serverUrl = normalizeServerUrl(serverAddress);
+      setServerAddress(serverUrl);
 
-      setSelectedServer({
-        name: "Server",
-        ip: serverUrl,
-      });
-      setSource({ uri: serverUrl });
-      setUrl(serverUrl);
-      setWebViewKey(String(Date.now()));
-      setShowServerEditor(false);
-    } catch (error: any) {
-      Alert.alert(
-        "Error",
-        `Failed to save server: ${error?.message || "Unknown error"}`,
-      );
-    } finally {
-      setIsSavingServer(false);
-    }
-  };
-
-  const handleChangeServer = () => {
-    setShowServerEditor(true);
-  };
-
-  const handleRefresh = () => {
-    webViewRef.current?.reload();
-  };
-
-  const handleNavigationStateChange = (navState: WebViewNavigation) => {
-    if (!navState.loading) {
-      setUrl(navState.url);
-    }
-  };
-
-  const handleError = (syntheticEvent: any) => {
-    const { nativeEvent } = syntheticEvent;
-    console.error("[LoginForm] WebView error:", nativeEvent);
-
-    if (
-      nativeEvent.description?.includes("SSL") ||
-      nativeEvent.description?.includes("certificate") ||
-      nativeEvent.description?.includes("ERR_CERT")
-    ) {
-      Alert.alert(
-        "SSL Certificate Error",
-        "Unable to verify the server's SSL certificate. Please ensure:\n\n" +
-          "1. Your self-signed certificate's root CA is installed in Android Settings > Security > Encryption & Credentials > Install a certificate\n" +
-          "2. The certificate is installed as a 'CA certificate'\n" +
-          "3. You've rebuilt the app after installing the certificate\n\n" +
-          "Error: " +
-          (nativeEvent.description || "Unknown SSL error"),
-        [{ text: "OK" }],
-      );
-    }
-  };
-
-  const handleHttpError = (syntheticEvent: any) => {
-    const { nativeEvent } = syntheticEvent;
-    console.warn(
-      "[LoginForm] HTTP error:",
-      nativeEvent.statusCode,
-      nativeEvent.url,
-    );
-  };
-
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-
-  const onMessage = async (event: any) => {
-    if (isAuthenticating) {
-      return;
-    }
-
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-
-      if (data.type === "AUTH_SUCCESS" && data.token) {
-        setIsAuthenticating(true);
-
-        try {
-          const tokenParts = data.token.split(".");
-          if (tokenParts.length === 3) {
-            const payload = JSON.parse(atob(tokenParts[1]));
-            if (payload.exp) {
-              const expirationDate = new Date(payload.exp * 1000);
-              const now = new Date();
-              const daysUntilExpiration = Math.floor(
-                (expirationDate.getTime() - now.getTime()) /
-                  (1000 * 60 * 60 * 24),
-              );
-            }
-          }
-        } catch (jwtParseError) {
-          console.error(
-            "[LoginForm] Failed to parse JWT for diagnostics:",
-            jwtParseError,
-          );
-        }
-
-        await setCookie("jwt", data.token);
-
-        const savedToken = await AsyncStorage.getItem("jwt");
-        if (!savedToken) {
-          setIsAuthenticating(false);
-          Alert.alert(
-            "Error",
-            "Failed to save authentication token. Please try again.",
-          );
-          return;
-        }
-
-        await initializeServerConfig();
-
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
-        setAuthenticated(true);
-        setShowLoginForm(false);
+      if (pendingTotpToken) {
+        await handleTotpLogin(serverUrl);
+      } else {
+        await handlePasswordLogin(serverUrl);
       }
     } catch (error) {
-      console.error("[LoginForm] Error processing auth token:", error);
-      setIsAuthenticating(false);
-      Alert.alert("Error", "Failed to process authentication token.");
+      Alert.alert("Login failed", getErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const injectedJavaScript = `
-    (function() {
-      const isOIDCCallback = window.location.href.includes('/oidc/callback') ||
-                            window.location.href.includes('?success=') ||
-                            window.location.href.includes('?error=');
+  const buttonLabel = pendingTotpToken ? "Verify and Sign In" : "Sign In";
 
-      if (!isOIDCCallback) {
-        try {
-          if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem('jwt');
-          }
-          if (typeof sessionStorage !== 'undefined') {
-            sessionStorage.removeItem('jwt');
-          }
-
-          const cookies = document.cookie.split(";");
-          cookies.forEach(function(c) {
-            const cookieName = c.split("=")[0].trim();
-            if (cookieName === 'jwt') {
-              document.cookie = cookieName + "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
-              document.cookie = cookieName + "=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;domain=" + window.location.hostname;
-            }
-          });
-        } catch(e) {
-          console.error('[LoginForm] Error clearing JWT from WebView:', e);
-        }
-      }
-
-      const style = document.createElement('style');
-      style.textContent = \`
-        button:has-text("Install Mobile App"),
-        [class*="mobile-app"],
-        [class*="install-app"],
-        [id*="mobile-app"],
-        [id*="install-app"],
-        a[href*="app-store"],
-        a[href*="play-store"],
-        a[href*="google.com/store"],
-        a[href*="apple.com/app"],
-        button[aria-label*="Install"],
-        button[aria-label*="Mobile App"],
-        button[aria-label*="Download App"],
-        a[aria-label*="Install"],
-        a[aria-label*="Mobile App"],
-        a[aria-label*="Download App"] {
-          display: none !important;
-        }
-      \`;
-      document.head.appendChild(style);
-
-      const hideByText = () => {
-        const buttons = document.querySelectorAll('button, a');
-        buttons.forEach(btn => {
-          const text = btn.textContent?.toLowerCase() || '';
-          if (text.includes('install') && text.includes('mobile')) {
-            btn.style.display = 'none';
-          }
-          if (text.includes('download') && text.includes('app')) {
-            btn.style.display = 'none';
-          }
-          if (text.includes('get') && text.includes('app')) {
-            btn.style.display = 'none';
-          }
-        });
-      };
-
-      hideByText();
-      setTimeout(hideByText, 500);
-      setTimeout(hideByText, 1000);
-      setTimeout(hideByText, 2000);
-
-      const observer = new MutationObserver(hideByText);
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      let hasNotified = false;
-      let lastCheckedToken = null;
-      let initialCheckComplete = false;
-
-      const notifyAuth = (token, source) => {
-        if (hasNotified || !token || token === lastCheckedToken) {
-          return;
-        }
-
-        if (isOIDCCallback) {
-          hasNotified = true;
-          lastCheckedToken = token;
-        }
-        else if (initialCheckComplete) {
-          hasNotified = true;
-          lastCheckedToken = token;
-        } else {
-          return;
-        }
-
-        if (!hasNotified) return;
-
-        try {
-          const message = JSON.stringify({
-            type: 'AUTH_SUCCESS',
-            token: token,
-            source: source,
-            timestamp: Date.now()
-          });
-
-          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-            window.ReactNativeWebView.postMessage(message);
-          } else {
-            console.error('[WebView] ReactNativeWebView.postMessage not available!');
-          }
-        } catch (e) {
-          console.error('[WebView] Error sending message:', e);
-        }
-      };
-
-      const checkAuth = () => {
-        try {
-          const localToken = localStorage.getItem('jwt');
-          if (localToken && localToken.length > 20) {
-            notifyAuth(localToken, 'localStorage');
-            return true;
-          }
-
-          const sessionToken = sessionStorage.getItem('jwt');
-          if (sessionToken && sessionToken.length > 20) {
-            notifyAuth(sessionToken, 'sessionStorage');
-            return true;
-          }
-
-          const cookies = document.cookie;
-          if (cookies && cookies.length > 0) {
-            const cookieArray = cookies.split('; ');
-            const tokenCookie = cookieArray.find(row => row.startsWith('jwt='));
-
-            if (tokenCookie) {
-              const token = tokenCookie.split('=')[1];
-              if (token && token.length > 20) {
-                notifyAuth(token, 'cookie');
-                return true;
-              }
-            }
-          }
-        } catch (error) {
-          console.error('[WebView] Error in checkAuth:', error);
-        }
-        return false;
-      };
-
-      const originalSetItem = localStorage.setItem;
-      localStorage.setItem = function(key, value) {
-        originalSetItem.apply(this, arguments);
-        if (key === 'jwt' && value && value.length > 20 && !hasNotified) {
-          checkAuth();
-        }
-      };
-
-      const originalSessionSetItem = sessionStorage.setItem;
-      sessionStorage.setItem = function(key, value) {
-        originalSessionSetItem.apply(this, arguments);
-        if (key === 'jwt' && value && value.length > 20 && !hasNotified) {
-          checkAuth();
-        }
-      };
-
-      const intervalId = setInterval(() => {
-        if (hasNotified) {
-          clearInterval(intervalId);
-          return;
-        }
-        if (checkAuth()) {
-          clearInterval(intervalId);
-        }
-      }, 500);
-
-      checkAuth();
-
-      setTimeout(() => {
-        initialCheckComplete = true;
-      }, 1000);
-
-      window.addEventListener('message', (event) => {
-        try {
-          if (event.data && typeof event.data === 'object') {
-            const data = event.data;
-            if (data.type === 'AUTH_SUCCESS' && data.token && data.source === 'explicit') {
-              notifyAuth(data.token, 'explicit-message');
-            }
-          }
-        } catch (e) {
-          console.error('[WebView] Error processing message event:', e);
-        }
-      });
-
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && !hasNotified) {
-          checkAuth();
-        }
-      });
-
-      setTimeout(() => {
-        clearInterval(intervalId);
-      }, 120000);
-    })();
-  `;
-
-  if (showServerEditor || !source.uri) {
-    return (
-      <KeyboardAvoidingView
-        className="flex-1 bg-dark-bg"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+  return (
+    <KeyboardAvoidingView
+      className="flex-1 bg-dark-bg"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: insets.top,
+          paddingHorizontal: 24,
+          paddingBottom: 32,
+          justifyContent: "center",
+        }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingTop: insets.top,
-            paddingHorizontal: 24,
-            justifyContent: "center",
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="mb-8">
-            <Text className="text-white text-3xl font-bold text-center">
-              Termix
-            </Text>
-            <Text className="text-gray-400 text-center mt-2">
-              Sign in to your self-hosted Termix server
-            </Text>
-          </View>
+        <View className="mb-8">
+          <Text className="text-center text-3xl font-bold text-white">
+            Termix
+          </Text>
+          <Text className="mt-2 text-center text-gray-400">
+            Sign in directly to your self-hosted server
+          </Text>
+        </View>
 
-          <View className="bg-[#1a1a1a] rounded-2xl border border-[#303032] p-5">
-            <Text className="text-white text-lg font-semibold mb-1">
+        <View className="rounded-2xl border border-[#303032] bg-[#1a1a1a] p-5">
+          <Text className="mb-1 text-lg font-semibold text-white">
+            Server Login
+          </Text>
+          <Text className="mb-5 text-sm text-gray-400">
+            Enter the server address and your account credentials.
+          </Text>
+
+          <View className="mb-4">
+            <Text className="mb-2 text-sm font-medium text-gray-300">
               Server Address
             </Text>
-            <Text className="text-gray-400 text-sm mb-4">
-              Enter the URL of your Termix server before logging in.
-            </Text>
-
             <View className="relative">
-              <View className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+              <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
                 <ServerIcon size={20} color="#9CA3AF" />
               </View>
               <TextInput
-                className="bg-[#111113] rounded-xl text-white border border-[#303032]"
-                style={{
-                  height: 56,
-                  paddingLeft: 48,
-                  paddingRight: 16,
-                }}
-                placeholder="https://termix.example.com"
+                className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                style={{ height: 56, paddingLeft: 48, paddingRight: 16 }}
+                placeholder="http://192.168.1.10:30001"
                 placeholderTextColor="#71717A"
                 value={serverAddress}
-                onChangeText={setServerAddress}
+                onChangeText={(value) => {
+                  setServerAddress(value);
+                  resetTotp();
+                }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="off"
-                editable={!isSavingServer}
+                keyboardType="url"
+                editable={!isSubmitting}
+                returnKeyType="next"
               />
             </View>
+          </View>
 
+          <View className="mb-4">
+            <Text className="mb-2 text-sm font-medium text-gray-300">
+              Username
+            </Text>
+            <View className="relative">
+              <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
+                <User size={20} color="#9CA3AF" />
+              </View>
+              <TextInput
+                className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                style={{ height: 56, paddingLeft: 48, paddingRight: 16 }}
+                placeholder="admin"
+                placeholderTextColor="#71717A"
+                value={username}
+                onChangeText={(value) => {
+                  setUsername(value);
+                  resetTotp();
+                }}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="username"
+                editable={!isSubmitting}
+                returnKeyType="next"
+              />
+            </View>
+          </View>
+
+          <View className="mb-4">
+            <Text className="mb-2 text-sm font-medium text-gray-300">
+              Password
+            </Text>
+            <View className="relative">
+              <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
+                <Lock size={20} color="#9CA3AF" />
+              </View>
+              <TextInput
+                className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                style={{ height: 56, paddingLeft: 48, paddingRight: 52 }}
+                placeholder="Password"
+                placeholderTextColor="#71717A"
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  resetTotp();
+                }}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password"
+                editable={!isSubmitting}
+                returnKeyType={pendingTotpToken ? "next" : "done"}
+                onSubmitEditing={!pendingTotpToken ? handleSubmit : undefined}
+              />
+              <TouchableOpacity
+                className="absolute right-4 top-1/2 z-10 -translate-y-1/2"
+                onPress={() => setShowPassword((value) => !value)}
+                disabled={isSubmitting}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color="#9CA3AF" />
+                ) : (
+                  <Eye size={20} color="#9CA3AF" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {pendingTotpToken ? (
+            <View className="mb-4">
+              <Text className="mb-2 text-sm font-medium text-gray-300">
+                Verification Code
+              </Text>
+              <View className="relative">
+                <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
+                  <ShieldCheck size={20} color="#9CA3AF" />
+                </View>
+                <TextInput
+                  className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                  style={{ height: 56, paddingLeft: 48, paddingRight: 16 }}
+                  placeholder="123456"
+                  placeholderTextColor="#71717A"
+                  value={totpCode}
+                  onChangeText={setTotpCode}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="number-pad"
+                  editable={!isSubmitting}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit}
+                />
+              </View>
+              <Text className="mt-2 text-xs text-gray-500">
+                Two-factor authentication is enabled for this account.
+              </Text>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            className={`mt-2 flex-row items-center justify-center rounded-xl px-6 py-4 ${
+              isSubmitting ? "bg-gray-600" : "bg-green-600"
+            }`}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <LogIn size={20} color="#ffffff" />
+            )}
+            <Text className="ml-2 text-center text-base font-semibold text-white">
+              {isSubmitting ? "Signing in..." : buttonLabel}
+            </Text>
+          </TouchableOpacity>
+
+          {pendingTotpToken ? (
             <TouchableOpacity
-              onPress={handleSaveServerAddress}
-              disabled={isSavingServer}
-              className={`px-6 py-4 rounded-xl mt-5 ${
-                isSavingServer ? "bg-gray-600" : "bg-green-600"
-              }`}
+              onPress={() => {
+                setPendingTotpToken("");
+                setTotpCode("");
+              }}
+              disabled={isSubmitting}
+              className="mt-4"
             >
-              <Text className="text-white text-center font-semibold text-base">
-                {isSavingServer ? "Saving..." : "Continue to Login"}
+              <Text className="text-center text-sm font-medium text-gray-400">
+                Use a different password
               </Text>
             </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  return (
-    <View className="flex-1 bg-dark-bg" style={{ paddingTop: insets.top }}>
-      <View className="flex-row items-center justify-between p-4 bg-dark-bg">
-        <TouchableOpacity
-          onPress={handleChangeServer}
-          className="flex-row items-center"
-        >
-          <ServerIcon size={20} color="#ffffff" />
-          <Text className="text-white text-lg ml-2">Server</Text>
-        </TouchableOpacity>
-        <View className="flex-1 mx-4">
-          <Text className="text-gray-400 text-center" numberOfLines={1}>
-            {url.replace(/^https?:\/\//, "")}
-          </Text>
+          ) : null}
         </View>
-        <TouchableOpacity onPress={handleRefresh}>
-          <RefreshCw size={20} color="#ffffff" />
-        </TouchableOpacity>
-      </View>
-
-      <WebView
-        key={webViewKey}
-        ref={webViewRef}
-        source={source}
-        userAgent={
-          Platform.OS === "android"
-            ? "Termix-Mobile/Android"
-            : "Termix-Mobile/iOS"
-        }
-        style={{ flex: 1, backgroundColor: "#18181b" }}
-        containerStyle={{ backgroundColor: "#18181b" }}
-        onNavigationStateChange={handleNavigationStateChange}
-        onMessage={onMessage}
-        onError={handleError}
-        onHttpError={handleHttpError}
-        injectedJavaScript={injectedJavaScript}
-        injectedJavaScriptBeforeContentLoaded={`
-          document.body.style.backgroundColor = '#18181b';
-          document.documentElement.style.backgroundColor = '#18181b';
-        `}
-        incognito={false}
-        cacheEnabled={false}
-        cacheMode="LOAD_NO_CACHE"
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={true}
-        sharedCookiesEnabled={false}
-        thirdPartyCookiesEnabled={true}
-        {...(Platform.OS === "android" && {
-          mixedContentMode: "always",
-          allowFileAccess: false,
-        })}
-        {...(Platform.OS === "ios" && {
-          allowsBackForwardNavigationGestures: false,
-        })}
-        renderLoading={() => (
-          <View
-            style={{
-              backgroundColor: "#18181b",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            <ActivityIndicator size="large" color="#22C55E" />
-          </View>
-        )}
-      />
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

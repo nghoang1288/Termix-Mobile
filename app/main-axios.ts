@@ -388,7 +388,11 @@ async function detectAndUpdateApiInstances(): Promise<void> {
       (async () => {
         try {
           const base = getRootBase(8085).replace(/\/$/, "");
-          const testInstance = axios.create({ baseURL: base, timeout: 5000, headers: authHeaders });
+          const testInstance = axios.create({
+            baseURL: base,
+            timeout: 5000,
+            headers: authHeaders,
+          });
           await testInstance.head("/status");
           return true;
         } catch {
@@ -398,7 +402,11 @@ async function detectAndUpdateApiInstances(): Promise<void> {
       (async () => {
         try {
           const base = getSshBase(8085).replace(/\/$/, "");
-          const testInstance = axios.create({ baseURL: base, timeout: 5000, headers: authHeaders });
+          const testInstance = axios.create({
+            baseURL: base,
+            timeout: 5000,
+            headers: authHeaders,
+          });
           await testInstance.head("/status");
           return true;
         } catch {
@@ -408,7 +416,11 @@ async function detectAndUpdateApiInstances(): Promise<void> {
       (async () => {
         try {
           const base = getRootBase(8081).replace(/\/$/, "");
-          const testInstance = axios.create({ baseURL: base, timeout: 5000, headers: authHeaders });
+          const testInstance = axios.create({
+            baseURL: base,
+            timeout: 5000,
+            headers: authHeaders,
+          });
           await testInstance.head("/users/registration-allowed");
           return true;
         } catch {
@@ -418,7 +430,11 @@ async function detectAndUpdateApiInstances(): Promise<void> {
       (async () => {
         try {
           const base = getSshBase(8081).replace(/\/$/, "");
-          const testInstance = axios.create({ baseURL: base, timeout: 5000, headers: authHeaders });
+          const testInstance = axios.create({
+            baseURL: base,
+            timeout: 5000,
+            headers: authHeaders,
+          });
           await testInstance.head("/users/registration-allowed");
           return true;
         } catch {
@@ -1779,12 +1795,13 @@ export async function registerUser(
 }
 
 function extractJwtFromSetCookie(headers: any): string | null {
-  const cookieHeader = headers["set-cookie"];
+  const cookieHeader = headers?.["set-cookie"] ?? headers?.["Set-Cookie"];
   if (cookieHeader) {
     const cookies = Array.isArray(cookieHeader) ? cookieHeader : [cookieHeader];
     for (const cookie of cookies) {
-      if (cookie.startsWith("jwt=")) {
-        return cookie.split("jwt=")[1].split(";")[0];
+      const match = String(cookie).match(/(?:^|,\s*|;\s*)jwt=([^;,\s]+)/);
+      if (match) {
+        return match[1];
       }
     }
   }
@@ -1799,7 +1816,16 @@ async function loginWithFetch(
   const url = `${baseUrl.replace(/\/$/, "")}/users/login`;
   const fetchResponse = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "User-Agent":
+        platform.OS === "android"
+          ? "Termix-Mobile/Android"
+          : platform.OS === "ios"
+            ? "Termix-Mobile/iOS"
+            : `Termix-Mobile/${platform.OS}`,
+      "X-Electron-App": "true",
+    },
     body: JSON.stringify({ username, password }),
   });
 
@@ -1834,12 +1860,18 @@ export async function loginUser(
       return { ...data, token: data.temp_token || "" };
     }
 
-
     let finalToken = token;
     if (!finalToken) {
       try {
-        const axiosResponse = await authApi.post("/users/login", { username, password });
-        finalToken = extractJwtFromSetCookie(axiosResponse.headers) || axiosResponse.data.token || null;
+        const axiosResponse = await authApi.post(
+          "/users/login",
+          { username, password },
+          { headers: { "X-Electron-App": "true" } },
+        );
+        finalToken =
+          extractJwtFromSetCookie(axiosResponse.headers) ||
+          axiosResponse.data.token ||
+          null;
       } catch {
         // ignore, we already have data
       }
@@ -1854,7 +1886,11 @@ export async function loginUser(
     if (error?.response?.status === 404) {
       try {
         const altBase = getSshBase(8081);
-        const { data, token } = await loginWithFetch(altBase, username, password);
+        const { data, token } = await loginWithFetch(
+          altBase,
+          username,
+          password,
+        );
 
         if (data.requires_totp) {
           return { ...data, token: data.temp_token || "" };
@@ -2246,21 +2282,16 @@ export async function verifyTOTPLogin(
   totp_code: string,
 ): Promise<AuthResponse> {
   try {
-    const response = await authApi.post("/users/totp/verify-login", {
-      temp_token,
-      totp_code,
-    });
+    const response = await authApi.post(
+      "/users/totp/verify-login",
+      {
+        temp_token,
+        totp_code,
+      },
+      { headers: { "X-Electron-App": "true" } },
+    );
 
-    let token = null;
-    const cookieHeader = response.headers["set-cookie"];
-    if (cookieHeader && Array.isArray(cookieHeader)) {
-      for (const cookie of cookieHeader) {
-        if (cookie.startsWith("jwt=")) {
-          token = cookie.split("jwt=")[1].split(";")[0];
-          break;
-        }
-      }
-    }
+    const token = extractJwtFromSetCookie(response.headers);
 
     const result = {
       ...response.data,
@@ -2277,7 +2308,10 @@ export async function verifyTOTPLogin(
       try {
         const alt = axios.create({
           baseURL: getSshBase(8081),
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Electron-App": "true",
+          },
         });
 
         const token = await getCookie("jwt");
@@ -2290,16 +2324,7 @@ export async function verifyTOTPLogin(
           totp_code,
         });
 
-        let extractedToken = null;
-        const cookieHeader = response.headers["set-cookie"];
-        if (cookieHeader && Array.isArray(cookieHeader)) {
-          for (const cookie of cookieHeader) {
-            if (cookie.startsWith("jwt=")) {
-              extractedToken = cookie.split("jwt=")[1].split(";")[0];
-              break;
-            }
-          }
-        }
+        const extractedToken = extractJwtFromSetCookie(response.headers);
 
         const result = {
           ...response.data,
