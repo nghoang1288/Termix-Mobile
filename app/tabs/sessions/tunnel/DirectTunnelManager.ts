@@ -23,6 +23,7 @@ import {
   mergeCredentialDetails,
   normalizeDirectAuthConfig,
 } from "@/app/tabs/sessions/terminal/direct-auth";
+import { retainConnectionKeepAlive } from "@/app/native/connection-keep-alive";
 
 type DirectTunnelHostConfig = SSHHost & {
   privateKey?: string | null;
@@ -33,6 +34,7 @@ type ActiveDirectTunnel = {
   client: SSHClient;
   bindAddress: string;
   localPort: number;
+  releaseKeepAlive: () => void;
 };
 
 const DEFAULT_BIND_ADDRESS = "127.0.0.1";
@@ -95,6 +97,9 @@ export async function connectDirectTunnel(
       client,
       bindAddress: DEFAULT_BIND_ADDRESS,
       localPort: Number(tunnel.sourcePort),
+      releaseKeepAlive: retainConnectionKeepAlive(
+        `Direct tunnel: 127.0.0.1:${tunnel.sourcePort}`,
+      ),
     });
     tunnelStatuses = {
       ...tunnelStatuses,
@@ -142,6 +147,7 @@ export async function disconnectDirectTunnel(
     // Disconnecting the SSH session below also tears down the forward.
   } finally {
     activeTunnel.client.disconnect();
+    activeTunnel.releaseKeepAlive();
     activeTunnels.delete(tunnelName);
     tunnelStatuses = {
       ...tunnelStatuses,

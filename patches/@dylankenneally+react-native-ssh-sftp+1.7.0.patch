@@ -18,6 +18,10 @@ index 89a0053..b65ff9a 100644
  import java.util.HashMap;
  import java.util.Locale;
  import java.util.Map;
+@@ -216,1 +218,3 @@ public class RNSshClientModule extends ReactContextBaseJavaModule {
+           Session session = jsch.getSession(username, host, port);
++          session.setServerAliveInterval(30000);
++          session.setServerAliveCountMax(3);
 @@ -278,6 +280,125 @@ public class RNSshClientModule extends ReactContextBaseJavaModule {
      }).start();
    }

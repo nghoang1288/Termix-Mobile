@@ -1,4 +1,5 @@
 import { getCurrentServerUrl, getCookie } from "../../../main-axios";
+import { retainConnectionKeepAlive } from "@/app/native/connection-keep-alive";
 
 export interface TerminalHostConfig {
   id: number;
@@ -70,6 +71,7 @@ export class NativeWebSocketManager {
   private wsUrl: string | null = null;
   private serverSessionId: string | null = null;
   private pendingReattach = false;
+  private releaseKeepAlive: (() => void) | null = null;
 
   constructor(config: NativeWSConfig) {
     this.config = config;
@@ -108,6 +110,7 @@ export class NativeWebSocketManager {
   destroy(): void {
     this.destroyed = true;
     this.shouldNotReconnect = true;
+    this.releaseKeepAliveHandle();
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
         this.ws.send(JSON.stringify({ type: "disconnect" }));
@@ -406,6 +409,7 @@ export class NativeWebSocketManager {
         } else if (msg.type === "connected") {
           const isReattach = this.pendingReattach;
           this.pendingReattach = false;
+          this.retainKeepAlive();
           this.config.onStateChange("connected", {
             hostName: this.config.hostConfig.name,
             fromBackground: this.currentConnectionFromBackground,
@@ -555,6 +559,19 @@ export class NativeWebSocketManager {
     this.config.onConnectionFailed(
       `${this.config.hostConfig.name}: ${message}`,
     );
+  }
+
+  private retainKeepAlive(): void {
+    if (this.releaseKeepAlive) return;
+    this.releaseKeepAlive = retainConnectionKeepAlive(
+      `Server relay: ${this.config.hostConfig.name}`,
+    );
+  }
+
+  private releaseKeepAliveHandle(): void {
+    if (!this.releaseKeepAlive) return;
+    this.releaseKeepAlive();
+    this.releaseKeepAlive = null;
   }
 
   private isUnrecoverableError(message: string): boolean {

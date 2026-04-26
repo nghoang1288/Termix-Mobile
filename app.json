@@ -67,6 +67,7 @@
       ],
       "./plugins/withIOSNetworkSecurity.js",
       "./plugins/withNetworkSecurityConfig.js",
+      "./plugins/withConnectionKeepAlive.js",
       "expo-dev-client"
     ],
     "experiments": {

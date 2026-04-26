@@ -21,6 +21,7 @@ import {
   mergeCredentialDetails,
   normalizeDirectAuthConfig,
 } from "./direct-auth";
+import { retainConnectionKeepAlive } from "@/app/native/connection-keep-alive";
 
 type DirectAuthConfig = TerminalHostConfig & {
   password?: string | null;
@@ -39,6 +40,7 @@ export class DirectSSHManager {
   private rows = 24;
   private hasNotifiedFailure = false;
   private pendingHostKeyDecision: ((accepted: boolean) => void) | null = null;
+  private releaseKeepAlive: (() => void) | null = null;
 
   constructor(config: NativeWSConfig) {
     this.config = config;
@@ -132,6 +134,7 @@ export class DirectSSHManager {
 
       if (this.destroyed) return;
 
+      this.retainKeepAlive();
       this.config.onStateChange("connected", {
         hostName: this.hostConfig.name,
         connectionMode: "direct",
@@ -145,6 +148,7 @@ export class DirectSSHManager {
 
   destroy(): void {
     this.destroyed = true;
+    this.releaseKeepAliveHandle();
     try {
       this.client?.disconnect();
     } catch {}
@@ -192,6 +196,19 @@ export class DirectSSHManager {
   notifyBackgrounded(): void {}
 
   notifyForegrounded(): void {}
+
+  private retainKeepAlive(): void {
+    if (this.releaseKeepAlive) return;
+    this.releaseKeepAlive = retainConnectionKeepAlive(
+      `Direct SSH: ${this.hostConfig.name}`,
+    );
+  }
+
+  private releaseKeepAliveHandle(): void {
+    if (!this.releaseKeepAlive) return;
+    this.releaseKeepAlive();
+    this.releaseKeepAlive = null;
+  }
 
   private async resolveAuthConfig(): Promise<DirectAuthConfig> {
     const inlineAuthConfig = normalizeDirectAuthConfig(this.hostConfig);

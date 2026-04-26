@@ -60,9 +60,12 @@ export default function Settings() {
     }
   };
 
-  const toggleTerminalConnectionMode = async () => {
+  const saveTerminalConnectionMode = async (
+    nextMode: TerminalConnectionMode,
+  ) => {
+    if (nextMode === terminalConnectionMode) return;
+
     const previousMode = terminalConnectionMode;
-    const nextMode = previousMode === "direct" ? "relay" : "direct";
     setLocalTerminalConnectionMode(nextMode);
 
     try {
@@ -107,34 +110,46 @@ export default function Settings() {
             <Text className="text-green-500 text-xl">{">"}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={toggleTerminalConnectionMode}
-            className="bg-[#1a1a1a] border border-[#303032] px-6 py-4 rounded-lg flex-row items-center justify-between mt-3"
-          >
-            <View className="flex-1 pr-4">
-              <Text className="text-white font-semibold text-base">
-                Direct SSH Terminal
-              </Text>
-              <Text className="text-gray-400 text-sm mt-1">
-                {terminalConnectionMode === "direct"
-                  ? "Phone connects directly to SSH hosts"
-                  : "Termix server relays SSH sessions"}
-              </Text>
-            </View>
-            <View
-              className={`w-12 h-7 rounded-full p-1 ${
+          <View className="mt-3 bg-[#1a1a1a] border border-[#303032] px-4 py-4 rounded-lg">
+            <Text className="text-white font-semibold text-base">
+              SSH Connection Mode
+            </Text>
+            <Text className="text-gray-400 text-sm mt-1 mb-3">
+              Applies to terminal sessions and tunnels.
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => saveTerminalConnectionMode("direct")}
+              className={`px-4 py-3 rounded-lg border mb-2 ${
                 terminalConnectionMode === "direct"
-                  ? "bg-green-500"
-                  : "bg-[#303032]"
+                  ? "border-green-500 bg-green-500/10"
+                  : "border-[#303032] bg-[#111113]"
               }`}
             >
-              <View
-                className={`h-5 w-5 rounded-full bg-white ${
-                  terminalConnectionMode === "direct" ? "ml-5" : "ml-0"
-                }`}
-              />
-            </View>
-          </TouchableOpacity>
+              <Text className="text-white font-semibold">
+                Direct from phone
+              </Text>
+              <Text className="text-gray-400 text-sm mt-1">
+                The Android device opens SSH and local port forwards itself.
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => saveTerminalConnectionMode("relay")}
+              className={`px-4 py-3 rounded-lg border ${
+                terminalConnectionMode === "relay"
+                  ? "border-green-500 bg-green-500/10"
+                  : "border-[#303032] bg-[#111113]"
+              }`}
+            >
+              <Text className="text-white font-semibold">
+                Via Termix server
+              </Text>
+              <Text className="text-gray-400 text-sm mt-1">
+                The Termix backend opens SSH/tunnels and the app controls them.
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View className="mb-6">
