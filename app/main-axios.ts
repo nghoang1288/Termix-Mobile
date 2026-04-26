@@ -2519,9 +2519,7 @@ export async function getCredentialFolders(): Promise<any> {
 // Get SSH host with resolved credentials
 export async function getSSHHostWithCredentials(hostId: number): Promise<any> {
   try {
-    const response = await sshHostApi.get(
-      `/db/host/${hostId}/with-credentials`,
-    );
+    const response = await sshHostApi.get(`/db/host/${hostId}/export`);
     return response.data;
   } catch (error) {
     handleApiError(error, "fetch SSH host with credentials");

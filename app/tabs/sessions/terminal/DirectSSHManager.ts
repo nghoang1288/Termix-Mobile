@@ -194,12 +194,8 @@ export class DirectSSHManager {
   notifyForegrounded(): void {}
 
   private async resolveAuthConfig(): Promise<DirectAuthConfig> {
-    if (this.hostConfig.authType !== "credential") {
-      return this.hostConfig;
-    }
-
     const inlineAuthConfig = normalizeDirectAuthConfig(this.hostConfig);
-    if (inlineAuthConfig.authType !== "credential") {
+    if (!needsServerCredentials(inlineAuthConfig)) {
       return inlineAuthConfig;
     }
 
@@ -211,6 +207,7 @@ export class DirectSSHManager {
       return normalizeDirectAuthConfig({
         ...this.hostConfig,
         ...resolved,
+        id: this.hostConfig.id,
       });
     } catch {}
 
@@ -285,6 +282,23 @@ function normalizePrivateKey(key: string | null | undefined): string {
   return typeof key === "string"
     ? key.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n")
     : "";
+}
+
+function needsServerCredentials(config: DirectAuthConfig): boolean {
+  if (config.authType === "credential") return true;
+  if (config.authType === "password") return !hasText(config.password);
+  if (config.authType === "key") {
+    return (
+      !hasText(config.key) &&
+      !hasText(config.privateKey) &&
+      !hasText(config.sshKey)
+    );
+  }
+  return false;
+}
+
+function hasText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function formatError(error: unknown): string {

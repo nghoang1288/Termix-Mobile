@@ -153,33 +153,30 @@ export async function disconnectDirectTunnel(
 async function resolveAuthConfig(
   host: SSHHost,
 ): Promise<DirectTunnelHostConfig> {
-  if (host.authType === "credential") {
-    const inlineAuthConfig = normalizeDirectAuthConfig(host);
-    if (inlineAuthConfig.authType !== "credential") {
-      return inlineAuthConfig;
-    }
-
-    try {
-      const resolved = (await getSSHHostWithCredentials(
-        host.id,
-      )) as DirectTunnelHostConfig;
-      return normalizeDirectAuthConfig({
-        ...host,
-        ...resolved,
-      });
-    } catch {}
-
-    if (host.credentialId) {
-      try {
-        const credential = await getCredentialDetails(host.credentialId);
-        return mergeCredentialDetails(host, credential);
-      } catch {}
-    }
-
-    return directAuthUnavailable(host);
+  const inlineAuthConfig = normalizeDirectAuthConfig(host);
+  if (!needsServerCredentials(inlineAuthConfig)) {
+    return inlineAuthConfig;
   }
 
-  return host;
+  try {
+    const resolved = (await getSSHHostWithCredentials(
+      host.id,
+    )) as DirectTunnelHostConfig;
+    return normalizeDirectAuthConfig({
+      ...host,
+      ...resolved,
+      id: host.id,
+    });
+  } catch {}
+
+  if (host.credentialId) {
+    try {
+      const credential = await getCredentialDetails(host.credentialId);
+      return mergeCredentialDetails(host, credential);
+    } catch {}
+  }
+
+  return directAuthUnavailable(host);
 }
 
 async function connectClient(
@@ -266,6 +263,23 @@ function normalizePrivateKey(key: string | null | undefined): string {
   return typeof key === "string"
     ? key.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n")
     : "";
+}
+
+function needsServerCredentials(config: DirectTunnelHostConfig): boolean {
+  if (config.authType === "credential") return true;
+  if (config.authType === "password") return !hasText(config.password);
+  if (config.authType === "key") {
+    return (
+      !hasText(config.key) &&
+      !hasText(config.privateKey) &&
+      !hasText(config.sshKey)
+    );
+  }
+  return false;
+}
+
+function hasText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function formatError(error: unknown): string {

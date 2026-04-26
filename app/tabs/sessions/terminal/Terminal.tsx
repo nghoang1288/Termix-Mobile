@@ -12,8 +12,9 @@ import {
   ActivityIndicator,
   Dimensions,
   AccessibilityInfo,
+  ScrollView,
+  Platform,
 } from "react-native";
-import { WebView } from "react-native-webview";
 import { logActivity, getSnippets } from "../../../main-axios";
 import { showToast } from "../../../utils/toast";
 import { useTerminalCustomization } from "../../../contexts/TerminalCustomizationContext";
@@ -23,7 +24,7 @@ import {
   SSHAuthDialog,
   HostKeyVerificationDialog,
 } from "@/app/tabs/dialogs";
-import { TERMINAL_THEMES, TERMINAL_FONTS } from "@/constants/terminal-themes";
+import { TERMINAL_THEMES } from "@/constants/terminal-themes";
 import { MOBILE_DEFAULT_TERMINAL_CONFIG } from "@/constants/terminal-config";
 import type { TerminalConfig } from "@/types";
 import {
@@ -83,6 +84,8 @@ export type TerminalHandle = {
 
 type TerminalConnectionManager = NativeWebSocketManager | DirectSSHManager;
 
+const MAX_TERMINAL_BUFFER_CHARS = 120000;
+
 const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
   (
     {
@@ -94,7 +97,8 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     },
     ref,
   ) => {
-    const webViewRef = useRef<WebView>(null);
+    void title;
+
     const connectionManagerRef = useRef<TerminalConnectionManager | null>(null);
     const terminalColsRef = useRef(80);
     const terminalRowsRef = useRef(24);
@@ -102,12 +106,19 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     const dataFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
       null,
     );
+    const scrollViewRef = useRef<ScrollView>(null);
+    const terminalOutputRef = useRef("");
 
     const { config } = useTerminalCustomization();
+    const terminalPresentation = getTerminalPresentation(
+      config,
+      hostConfig.terminalConfig,
+    );
+    const terminalBackgroundColor = terminalPresentation.background;
+
     const [connectionMode, setConnectionMode] =
       useState<TerminalConnectionMode>("direct");
     const [connectionModeLoaded, setConnectionModeLoaded] = useState(false);
-    const [webViewKey, setWebViewKey] = useState(0);
     const [screenDimensions, setScreenDimensions] = useState(
       Dimensions.get("window"),
     );
@@ -121,9 +132,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       useState<ConnectionState>("connecting");
     const [retryCount, setRetryCount] = useState(0);
     const [hasReceivedData, setHasReceivedData] = useState(false);
-    const [htmlContent, setHtmlContent] = useState("");
-    const [terminalBackgroundColor, setTerminalBackgroundColor] =
-      useState("#09090b");
+    const [terminalOutput, setTerminalOutput] = useState("");
 
     const [totpRequired, setTotpRequired] = useState(false);
     const [totpPrompt, setTotpPrompt] = useState("");
@@ -132,7 +141,6 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     const [authDialogReason, setAuthDialogReason] = useState<
       "no_keyboard" | "auth_failed" | "timeout"
     >("auth_failed");
-    const [isSelecting, setIsSelecting] = useState(false);
     const [hostKeyVerification, setHostKeyVerification] = useState<{
       scenario: "new" | "changed";
       data: HostKeyData;
@@ -162,6 +170,12 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     const [autocompleteSelectedIndex, setAutocompleteSelectedIndex] =
       useState(0);
     const [showAutocomplete, setShowAutocomplete] = useState(false);
+
+    useEffect(() => {
+      if (onBackgroundColorChange) {
+        onBackgroundColorChange(terminalBackgroundColor);
+      }
+    }, [onBackgroundColorChange, terminalBackgroundColor]);
 
     useEffect(() => {
       AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
@@ -206,6 +220,12 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       autocompleteSelectedIndexRef.current = autocompleteSelectedIndex;
     }, [autocompleteSelectedIndex]);
 
+    const scrollToTerminalBottom = useCallback((animated = false) => {
+      requestAnimationFrame(() => {
+        scrollViewRef.current?.scrollToEnd({ animated });
+      });
+    }, []);
+
     const writeToAccessibility = useCallback((rawData: string) => {
       const cleaned = rawData
         .replace(/\x1b\[[0-9;]*[mGKHJABCDsu]/g, "")
@@ -237,6 +257,33 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       }, 500);
     }, []);
 
+    const flushPendingTerminalData = useCallback(() => {
+      dataFlushTimerRef.current = null;
+      const batch = pendingDataRef.current.join("");
+      pendingDataRef.current = [];
+
+      if (!batch) return;
+
+      const nextOutput = appendNativeTerminalData(
+        terminalOutputRef.current,
+        batch,
+      );
+      terminalOutputRef.current = nextOutput;
+      setTerminalOutput(nextOutput);
+      scrollToTerminalBottom(false);
+    }, [scrollToTerminalBottom]);
+
+    const resetNativeTerminal = useCallback(() => {
+      pendingDataRef.current = [];
+      terminalOutputRef.current = "";
+      setTerminalOutput("");
+      setHasReceivedData(false);
+      if (dataFlushTimerRef.current) {
+        clearTimeout(dataFlushTimerRef.current);
+        dataFlushTimerRef.current = null;
+      }
+    }, []);
+
     useEffect(() => {
       const subscription = Dimensions.addEventListener(
         "change",
@@ -247,6 +294,29 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 
       return () => subscription?.remove();
     }, []);
+
+    useEffect(() => {
+      const nextSize = estimateTerminalSize(
+        screenDimensions,
+        terminalPresentation.fontSize,
+        terminalPresentation.lineHeight,
+      );
+
+      if (
+        terminalColsRef.current === nextSize.cols &&
+        terminalRowsRef.current === nextSize.rows
+      ) {
+        return;
+      }
+
+      terminalColsRef.current = nextSize.cols;
+      terminalRowsRef.current = nextSize.rows;
+      connectionManagerRef.current?.sendResize(nextSize.cols, nextSize.rows);
+    }, [
+      screenDimensions,
+      terminalPresentation.fontSize,
+      terminalPresentation.lineHeight,
+    ]);
 
     useEffect(() => {
       let isMounted = true;
@@ -292,432 +362,6 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       },
       [onClose],
     );
-
-    const generateHTML = useCallback(() => {
-      const { width, height } = screenDimensions;
-
-      const terminalConfig: Partial<TerminalConfig> = {
-        ...MOBILE_DEFAULT_TERMINAL_CONFIG,
-        ...config,
-        ...hostConfig.terminalConfig,
-      };
-
-      const baseFontSize = config.fontSize || 16;
-      const charWidth = baseFontSize * 0.6;
-      const lineHeight = baseFontSize * 1.2;
-      const terminalWidth = Math.floor(width / charWidth);
-      const terminalHeight = Math.floor(height / lineHeight);
-
-      void terminalWidth;
-      void terminalHeight;
-
-      const themeName = terminalConfig.theme || "termix";
-      const themeColors =
-        TERMINAL_THEMES[themeName]?.colors || TERMINAL_THEMES.termix.colors;
-
-      const bgColor = themeColors.background;
-      setTerminalBackgroundColor(bgColor);
-      if (onBackgroundColorChange) {
-        onBackgroundColorChange(bgColor);
-      }
-
-      const fontConfig = TERMINAL_FONTS.find(
-        (f) => f.value === terminalConfig.fontFamily,
-      );
-      const fontFamily = fontConfig?.fallback || TERMINAL_FONTS[0].fallback;
-
-      return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Terminal</title>
-  <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
-  <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: ${themeColors.background};
-      font-family: ${fontFamily};
-      overflow: hidden;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    #terminal {
-      width: 100vw;
-      height: 100vh;
-      min-height: 100vh;
-      padding: 4px 4px 20px 4px;
-      margin: 0;
-      box-sizing: border-box;
-    }
-
-    .xterm {
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    .xterm-viewport {
-      width: 100% !important;
-      height: 100% !important;
-    }
-
-    .xterm {
-      font-feature-settings: "liga" 1, "calt" 1;
-      text-rendering: optimizeLegibility;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    .xterm .xterm-screen {
-      font-family: 'Caskaydia Cove Nerd Font Mono', 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
-      font-variant-ligatures: contextual;
-    }
-
-    .xterm .xterm-screen .xterm-char {
-      font-feature-settings: "liga" 1, "calt" 1;
-    }
-
-    .xterm .xterm-viewport::-webkit-scrollbar {
-      width: 8px;
-      background: transparent;
-    }
-    .xterm .xterm-viewport::-webkit-scrollbar-thumb {
-      background: rgba(180,180,180,0.7);
-      border-radius: 4px;
-    }
-    .xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
-      background: rgba(120,120,120,0.9);
-    }
-    .xterm .xterm-viewport {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(180,180,180,0.7) transparent;
-    }
-    * {
-      -webkit-tap-highlight-color: transparent;
-      -webkit-touch-callout: none;
-    }
-    html, body, #terminal, .xterm {
-      user-select: text;
-      -webkit-user-select: text;
-      -ms-user-select: text;
-      -moz-user-select: text;
-    }
-
-    input, textarea, [contenteditable], .xterm-helper-textarea {
-      position: absolute !important;
-      left: -9999px !important;
-      top: -9999px !important;
-      width: 1px !important;
-      height: 1px !important;
-      opacity: 0 !important;
-      pointer-events: none !important;
-      color: transparent !important;
-      background: transparent !important;
-      border: none !important;
-      outline: none !important;
-      caret-color: transparent !important;
-      -webkit-text-fill-color: transparent !important;
-    }
-
-  </style>
-</head>
-<body>
-  <div id="terminal"></div>
-
-  <script>
-    const screenWidth = ${width};
-    const screenHeight = ${height};
-
-    const baseFontSize = ${baseFontSize};
-
-    const terminal = new Terminal({
-      cursorBlink: ${terminalConfig.cursorBlink || false},
-      cursorStyle: '${terminalConfig.cursorStyle || "bar"}',
-      scrollback: ${terminalConfig.scrollback || 10000},
-      fontSize: baseFontSize,
-      fontFamily: ${JSON.stringify(fontFamily)},
-      letterSpacing: ${terminalConfig.letterSpacing || 0},
-      lineHeight: ${terminalConfig.lineHeight || 1.2},
-      theme: {
-        background: '${themeColors.background}',
-        foreground: '${themeColors.foreground}',
-        cursor: '${themeColors.cursor || themeColors.foreground}',
-        cursorAccent: '${themeColors.cursorAccent || themeColors.background}',
-        selectionBackground: '${themeColors.selectionBackground || "rgba(255, 255, 255, 0.3)"}',
-        selectionForeground: '${themeColors.selectionForeground || ""}',
-        black: '${themeColors.black}',
-        red: '${themeColors.red}',
-        green: '${themeColors.green}',
-        yellow: '${themeColors.yellow}',
-        blue: '${themeColors.blue}',
-        magenta: '${themeColors.magenta}',
-        cyan: '${themeColors.cyan}',
-        white: '${themeColors.white}',
-        brightBlack: '${themeColors.brightBlack}',
-        brightRed: '${themeColors.brightRed}',
-        brightGreen: '${themeColors.brightGreen}',
-        brightYellow: '${themeColors.brightYellow}',
-        brightBlue: '${themeColors.brightBlue}',
-        brightMagenta: '${themeColors.brightMagenta}',
-        brightCyan: '${themeColors.brightCyan}',
-        brightWhite: '${themeColors.brightWhite}'
-      },
-      allowTransparency: true,
-      convertEol: true,
-      screenReaderMode: true,
-      windowsMode: false,
-      macOptionIsMeta: false,
-      macOptionClickForcesSelection: false,
-      rightClickSelectsWord: false,
-      fastScrollModifier: 'alt',
-      fastScrollSensitivity: 5,
-      allowProposedApi: true,
-      disableStdin: true,
-      cursorInactiveStyle: '${terminalConfig.cursorStyle || "bar"}'
-    });
-
-    const fitAddon = new FitAddon.FitAddon();
-    terminal.loadAddon(fitAddon);
-
-    terminal.open(document.getElementById('terminal'));
-
-    fitAddon.fit();
-
-    setTimeout(() => {
-      const inputs = document.querySelectorAll('input, textarea, .xterm-helper-textarea');
-      inputs.forEach(input => {
-        input.setAttribute('autocomplete', 'off');
-        input.setAttribute('autocorrect', 'off');
-        input.setAttribute('autocapitalize', 'off');
-        input.setAttribute('spellcheck', 'false');
-        input.style.color = 'transparent';
-        input.style.caretColor = 'transparent';
-        input.style.webkitTextFillColor = 'transparent';
-      });
-    }, 100);
-
-    window.writeToTerminal = function(data) {
-      try { terminal.write(data); } catch(e) {}
-    };
-
-    window.notifyConnected = function(fromBackground, isReattach) {
-      terminal.clear();
-      if (isReattach) {
-        terminal.write('\\x1b[2J\\x1b[H');
-      } else {
-        terminal.reset();
-        terminal.write('\\x1b[2J\\x1b[H');
-      }
-    };
-
-    const terminalElement = document.getElementById('terminal');
-
-    window.resetScroll = function() {
-      terminal.scrollToBottom();
-    }
-
-    document.addEventListener('focusin', function(e) {
-      if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (e.target && e.target.blur) {
-          e.target.blur();
-        }
-        return false;
-      }
-    }, true);
-
-    document.addEventListener('focus', function(e) {
-      if (e.target && (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT')) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (e.target && e.target.blur) {
-          e.target.blur();
-        }
-        return false;
-      }
-    }, true);
-
-    terminalElement.addEventListener('contextmenu', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    }, { passive: false });
-
-    let selectionEndTimeout = null;
-    let isCurrentlySelecting = false;
-    let lastInteractionTime = Date.now();
-    let touchStartTime = 0;
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let hasMoved = false;
-    let longPressTimeout = null;
-
-    terminalElement.addEventListener('touchstart', (e) => {
-      lastInteractionTime = Date.now();
-      touchStartTime = Date.now();
-      hasMoved = false;
-
-      if (e.touches && e.touches.length > 0) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      }
-
-      if (longPressTimeout) {
-        clearTimeout(longPressTimeout);
-      }
-
-      longPressTimeout = setTimeout(() => {
-        if (!hasMoved) {
-          if (!isCurrentlySelecting) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'selectionStart', data: {} }));
-            isCurrentlySelecting = true;
-          }
-        }
-      }, 350);
-    }, { passive: true });
-
-    terminalElement.addEventListener('touchmove', (e) => {
-      if (e.touches && e.touches.length > 0) {
-        const deltaX = Math.abs(e.touches[0].clientX - touchStartX);
-        const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
-
-        if (deltaX > 10 || deltaY > 10) {
-          hasMoved = true;
-          if (longPressTimeout) {
-            clearTimeout(longPressTimeout);
-            longPressTimeout = null;
-          }
-        }
-      }
-    }, { passive: true });
-
-    terminalElement.addEventListener('touchend', () => {
-      if (longPressTimeout) {
-        clearTimeout(longPressTimeout);
-        longPressTimeout = null;
-      }
-
-      const touchDuration = Date.now() - touchStartTime;
-
-      setTimeout(() => {
-        const selection = terminal.getSelection();
-        const hasSelection = selection && selection.length > 0;
-
-        if (hasSelection) {
-          lastInteractionTime = Date.now();
-          if (!isCurrentlySelecting) {
-            isCurrentlySelecting = true;
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'selectionStart', data: {} }));
-          }
-        } else if (!isCurrentlySelecting && (touchDuration < 350 || hasMoved)) {
-          lastInteractionTime = Date.now();
-          checkIfDoneSelecting();
-        }
-      }, 100);
-    });
-
-    terminalElement.addEventListener('mousedown', (e) => {
-      lastInteractionTime = Date.now();
-    });
-
-    terminalElement.addEventListener('mouseup', () => {
-      lastInteractionTime = Date.now();
-      checkIfDoneSelecting();
-    });
-
-    function checkIfDoneSelecting() {
-      if (selectionEndTimeout) {
-        clearTimeout(selectionEndTimeout);
-      }
-
-      selectionEndTimeout = setTimeout(() => {
-        const selection = terminal.getSelection();
-        const hasSelection = selection && selection.length > 0;
-
-        if (hasSelection) {
-          if (!isCurrentlySelecting) {
-            isCurrentlySelecting = true;
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'selectionStart', data: {} }));
-          }
-        } else if (isCurrentlySelecting) {
-          const timeSinceLastInteraction = Date.now() - lastInteractionTime;
-          if (timeSinceLastInteraction >= 150) {
-            isCurrentlySelecting = false;
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'selectionEnd', data: {} }));
-          } else {
-            checkIfDoneSelecting();
-          }
-        }
-      }, 100);
-    }
-
-    terminal.onSelectionChange(() => {
-      const selection = terminal.getSelection();
-      const hasSelection = selection && selection.length > 0;
-
-      if (hasSelection) {
-        lastInteractionTime = Date.now();
-        if (!isCurrentlySelecting) {
-          isCurrentlySelecting = true;
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'selectionStart', data: {} }));
-        }
-      } else if (isCurrentlySelecting) {
-        lastInteractionTime = Date.now();
-        checkIfDoneSelecting();
-      }
-    });
-
-    function handleResize() {
-      fitAddon.fit();
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'resize',
-          data: { cols: terminal.cols, rows: terminal.rows }
-        }));
-      }
-    }
-
-    window.nativeFit = function() {
-      try { handleResize(); } catch(e) {}
-    }
-
-    window.addEventListener('resize', handleResize);
-
-    window.addEventListener('orientationchange', function() {
-      setTimeout(handleResize, 100);
-    });
-
-    terminal.clear();
-    terminal.reset();
-    terminal.write('\\x1b[2J\\x1b[H');
-
-    setTimeout(function() {
-      fitAddon.fit();
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'terminalReady',
-          data: { cols: terminal.cols, rows: terminal.rows }
-        }));
-      }
-    }, 150);
-  </script>
-</body>
-</html>
-    `;
-    }, [hostConfig, screenDimensions, config, onBackgroundColorChange]);
-
-    useEffect(() => {
-      setHtmlContent(generateHTML());
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     const hideAutocomplete = useCallback(() => {
       autocompleteVisibleRef.current = false;
@@ -998,46 +642,19 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       [],
     );
 
-    const handleWebViewMessage = useCallback((event: any) => {
-      try {
-        const message = JSON.parse(event.nativeEvent.data);
-
-        switch (message.type) {
-          case "terminalReady":
-            terminalColsRef.current = message.data.cols;
-            terminalRowsRef.current = message.data.rows;
-            connectionManagerRef.current?.connect(
-              message.data.cols,
-              message.data.rows,
-            );
-            break;
-
-          case "resize":
-            terminalColsRef.current = message.data.cols;
-            terminalRowsRef.current = message.data.rows;
-            connectionManagerRef.current?.sendResize(
-              message.data.cols,
-              message.data.rows,
-            );
-            break;
-
-          case "selectionStart":
-            setIsSelecting(true);
-            break;
-
-          case "selectionEnd":
-            setIsSelecting(false);
-            break;
-        }
-      } catch (error) {
-        console.error("[Terminal] Error parsing WebView message:", error);
-      }
-    }, []);
-
     useEffect(() => {
       if (!connectionModeLoaded) return;
 
       connectionManagerRef.current?.destroy();
+      resetNativeTerminal();
+
+      const initialSize = estimateTerminalSize(
+        screenDimensions,
+        terminalPresentation.fontSize,
+        terminalPresentation.lineHeight,
+      );
+      terminalColsRef.current = initialSize.cols;
+      terminalRowsRef.current = initialSize.rows;
 
       const managerConfig: NativeWSConfig = {
         hostConfig: hostConfig as TerminalHostConfig,
@@ -1051,22 +668,13 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
               );
               setRetryCount((data?.retryCount as number) || 0);
               break;
-            case "connected": {
-              const fromBackground = data?.fromBackground as boolean;
-              const isReattach = data?.isReattach as boolean;
+            case "connected":
               setConnectionState("connected");
               setRetryCount(0);
-              if (!isReattach) {
-                setHasReceivedData(false);
-              }
-              webViewRef.current?.injectJavaScript(
-                `window.notifyConnected(${fromBackground}, ${isReattach}); true;`,
-              );
               logActivity("terminal", hostConfig.id, hostConfig.name).catch(
                 () => {},
               );
               break;
-            }
             case "dataReceived":
               setHasReceivedData(true);
               break;
@@ -1075,14 +683,10 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         onData: (data) => {
           pendingDataRef.current.push(data);
           if (!dataFlushTimerRef.current) {
-            dataFlushTimerRef.current = setTimeout(() => {
-              dataFlushTimerRef.current = null;
-              const batch = pendingDataRef.current.join("");
-              pendingDataRef.current = [];
-              webViewRef.current?.injectJavaScript(
-                `window.writeToTerminal(${JSON.stringify(batch)}); true;`,
-              );
-            }, 16);
+            dataFlushTimerRef.current = setTimeout(
+              flushPendingTerminalData,
+              16,
+            );
           }
           if (isScreenReaderEnabledRef.current) {
             writeToAccessibility(data);
@@ -1110,18 +714,24 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         onConnectionFailed: (message) => handleConnectionFailure(message),
       };
 
-      connectionManagerRef.current =
+      const manager =
         connectionMode === "direct"
           ? new DirectSSHManager(managerConfig)
           : new NativeWebSocketManager(managerConfig);
 
-      setWebViewKey((prev) => prev + 1);
+      connectionManagerRef.current = manager;
       setConnectionState("connecting");
-      setHasReceivedData(false);
       setRetryCount(0);
+      void manager.connect(initialSize.cols, initialSize.rows);
 
-      const html = generateHTML();
-      setHtmlContent(html);
+      return () => {
+        manager.destroy();
+        if (connectionManagerRef.current === manager) {
+          connectionManagerRef.current = null;
+        }
+      };
+      // The session should only be recreated when the host or transport changes.
+      // Presentation updates are handled by sendResize without reconnecting.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hostConfig.id, connectionMode, connectionModeLoaded]);
 
@@ -1151,11 +761,18 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           sendTerminalInput(data);
         },
         fit: () => {
-          try {
-            webViewRef.current?.injectJavaScript(
-              `window.nativeFit && window.nativeFit(); true;`,
-            );
-          } catch {}
+          const nextSize = estimateTerminalSize(
+            screenDimensions,
+            terminalPresentation.fontSize,
+            terminalPresentation.lineHeight,
+          );
+          terminalColsRef.current = nextSize.cols;
+          terminalRowsRef.current = nextSize.rows;
+          connectionManagerRef.current?.sendResize(
+            nextSize.cols,
+            nextSize.rows,
+          );
+          scrollToTerminalBottom(false);
         },
         isDialogOpen: () => {
           return totpRequired || showAuthDialog || hostKeyVerification !== null;
@@ -1167,22 +784,19 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           connectionManagerRef.current?.notifyForegrounded();
         },
         scrollToBottom: () => {
-          try {
-            webViewRef.current?.injectJavaScript(
-              `window.resetScroll && window.resetScroll(); true;`,
-            );
-          } catch {}
+          scrollToTerminalBottom(false);
         },
-        isSelecting: () => {
-          return isSelecting;
-        },
+        isSelecting: () => false,
       }),
       [
+        screenDimensions,
+        terminalPresentation.fontSize,
+        terminalPresentation.lineHeight,
         totpRequired,
         showAuthDialog,
         hostKeyVerification,
-        isSelecting,
         sendTerminalInput,
+        scrollToTerminalBottom,
       ],
     );
 
@@ -1193,10 +807,10 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           width: "100%",
           height: "100%",
           position: isVisible ? "relative" : "absolute",
-          top: isVisible ? 0 : 0,
-          left: isVisible ? 0 : 0,
-          right: isVisible ? 0 : 0,
-          bottom: isVisible ? 0 : 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           backgroundColor: terminalBackgroundColor,
         }}
       >
@@ -1219,52 +833,54 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                 : "auto"
             }
           >
-            <WebView
-              key={`terminal-${hostConfig.id}-${webViewKey}`}
-              ref={webViewRef}
-              source={{ html: htmlContent }}
+            <ScrollView
+              ref={scrollViewRef}
               style={{
                 flex: 1,
                 width: "100%",
                 height: "100%",
                 backgroundColor: terminalBackgroundColor,
-                opacity:
-                  connectionState === "connected" && hasReceivedData ? 1 : 0,
               }}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              startInLoadingState={false}
-              scalesPageToFit={false}
-              allowsInlineMediaPlayback={true}
-              mediaPlaybackRequiresUserAction={false}
-              keyboardDisplayRequiresUserAction={false}
-              hideKeyboardAccessoryView={true}
-              cacheEnabled={false}
-              cacheMode="LOAD_NO_CACHE"
-              androidLayerType="hardware"
-              onScroll={(event) => {}}
-              onMessage={handleWebViewMessage}
-              onError={(syntheticEvent) => {
-                const { nativeEvent } = syntheticEvent;
-                handleConnectionFailure(
-                  `WebView error: ${nativeEvent.description}`,
-                );
+              contentContainerStyle={{
+                minHeight: "100%",
+                paddingHorizontal: 6,
+                paddingTop: 4,
+                paddingBottom: 96,
               }}
-              onHttpError={(syntheticEvent) => {
-                const { nativeEvent } = syntheticEvent;
-                handleConnectionFailure(
-                  `WebView HTTP error: ${nativeEvent.statusCode}`,
-                );
-              }}
-              scrollEnabled={true}
-              overScrollMode="never"
-              bounces={false}
+              keyboardShouldPersistTaps="handled"
               showsHorizontalScrollIndicator={false}
-              showsVerticalScrollIndicator={false}
-              nestedScrollEnabled={false}
-              textZoom={100}
-              setSupportMultipleWindows={false}
-            />
+              showsVerticalScrollIndicator={true}
+              overScrollMode="never"
+              onContentSizeChange={() => scrollToTerminalBottom(false)}
+            >
+              {connectionState === "connected" && !hasReceivedData ? (
+                <Text
+                  style={{
+                    color: terminalPresentation.mutedForeground,
+                    fontFamily: terminalPresentation.fontFamily,
+                    fontSize: terminalPresentation.fontSize,
+                    lineHeight: terminalPresentation.lineHeight,
+                  }}
+                >
+                  Connected. Waiting for shell output...
+                </Text>
+              ) : null}
+
+              {terminalOutput.length > 0 ? (
+                <Text
+                  selectable
+                  style={{
+                    color: terminalPresentation.foreground,
+                    fontFamily: terminalPresentation.fontFamily,
+                    fontSize: terminalPresentation.fontSize,
+                    letterSpacing: terminalPresentation.letterSpacing,
+                    lineHeight: terminalPresentation.lineHeight,
+                  }}
+                >
+                  {terminalOutput}
+                </Text>
+              ) : null}
+            </ScrollView>
           </View>
 
           {(connectionState === "connecting" ||
@@ -1315,7 +931,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                     textAlign: "center",
                   }}
                 >
-                  {hostConfig.name} • {hostConfig.ip}
+                  {hostConfig.name} - {hostConfig.ip}
                 </Text>
                 {retryCount > 0 && (
                   <View
@@ -1427,3 +1043,122 @@ TerminalComponent.displayName = "Terminal";
 
 export { TerminalComponent as Terminal };
 export default TerminalComponent;
+
+function getTerminalPresentation(
+  config: Partial<TerminalConfig>,
+  hostTerminalConfig?: Partial<TerminalConfig>,
+) {
+  const terminalConfig: Partial<TerminalConfig> = {
+    ...MOBILE_DEFAULT_TERMINAL_CONFIG,
+    ...config,
+    ...hostTerminalConfig,
+  };
+  const themeName = terminalConfig.theme || "termix";
+  const themeColors =
+    TERMINAL_THEMES[themeName]?.colors || TERMINAL_THEMES.termix.colors;
+  const fontSize = Number(terminalConfig.fontSize || 14);
+  const lineHeightMultiplier = Number(terminalConfig.lineHeight || 1.2);
+  const lineHeight = Math.max(12, Math.round(fontSize * lineHeightMultiplier));
+
+  return {
+    background: themeColors.background,
+    foreground: themeColors.foreground,
+    mutedForeground: themeColors.brightBlack || "#71717A",
+    fontFamily: getNativeMonospaceFont(terminalConfig.fontFamily),
+    fontSize,
+    letterSpacing: Number(terminalConfig.letterSpacing || 0),
+    lineHeight,
+  };
+}
+
+function getNativeMonospaceFont(fontFamily: unknown): string {
+  if (typeof fontFamily === "string" && fontFamily.trim()) {
+    return fontFamily.trim();
+  }
+
+  return Platform.select({
+    ios: "Menlo",
+    android: "monospace",
+    default: "monospace",
+  })!;
+}
+
+function estimateTerminalSize(
+  dimensions: { width: number; height: number },
+  fontSize: number,
+  lineHeight: number,
+) {
+  const charWidth = Math.max(6, fontSize * 0.6);
+  const availableWidth = Math.max(120, dimensions.width - 12);
+  const availableHeight = Math.max(160, dimensions.height - 12);
+
+  return {
+    cols: Math.max(20, Math.floor(availableWidth / charWidth)),
+    rows: Math.max(8, Math.floor(availableHeight / lineHeight)),
+  };
+}
+
+function appendNativeTerminalData(currentOutput: string, rawData: string) {
+  const normalized = normalizeTerminalData(rawData);
+  let output = normalized.clearBeforeAppend ? "" : currentOutput;
+
+  for (const char of normalized.text) {
+    if (char === "\n") {
+      output += "\n";
+      continue;
+    }
+
+    if (char === "\r") {
+      output = replaceCurrentLine(output, "");
+      continue;
+    }
+
+    if (char === "\b" || char === "\x7f") {
+      output = output.slice(0, -1);
+      continue;
+    }
+
+    if (char === "\f") {
+      output = "";
+      continue;
+    }
+
+    if (char === "\t") {
+      output += "    ";
+      continue;
+    }
+
+    if (char >= " ") {
+      output += char;
+    }
+  }
+
+  if (output.length <= MAX_TERMINAL_BUFFER_CHARS) {
+    return output;
+  }
+
+  const trimmed = output.slice(-MAX_TERMINAL_BUFFER_CHARS);
+  const firstLineBreak = trimmed.indexOf("\n");
+  return firstLineBreak > -1 ? trimmed.slice(firstLineBreak + 1) : trimmed;
+}
+
+function normalizeTerminalData(rawData: string) {
+  const clearBeforeAppend =
+    /\x1bc/.test(rawData) || /\x1b\[(?:2|3)?J/.test(rawData);
+  const text = rawData
+    .replace(/\r\n/g, "\n")
+    .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, "")
+    .replace(/\x1bP[\s\S]*?\x1b\\/g, "")
+    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
+    .replace(/\x1b[()][AB012]/g, "")
+    .replace(/\x1b[=>]/g, "")
+    .replace(/[\x00-\x08\x0b\x0e-\x1f]/g, "");
+
+  return { clearBeforeAppend, text };
+}
+
+function replaceCurrentLine(output: string, value: string) {
+  const lineBreakIndex = output.lastIndexOf("\n");
+  if (lineBreakIndex === -1) return value;
+  return `${output.slice(0, lineBreakIndex + 1)}${value}`;
+}
