@@ -670,6 +670,7 @@ export async function getSSHHosts(): Promise<SSHHost[]> {
 export async function createSSHHost(hostData: SSHHostData): Promise<SSHHost> {
   try {
     const submitData = {
+      connectionType: hostData.connectionType || "ssh",
       name: hostData.name || "",
       ip: hostData.ip,
       port: parseInt(hostData.port.toString()) || 22,
@@ -688,17 +689,34 @@ export async function createSSHHost(hostData: SSHHostData): Promise<SSHHost> {
       enableTerminal: Boolean(hostData.enableTerminal),
       enableTunnel: Boolean(hostData.enableTunnel),
       enableFileManager: Boolean(hostData.enableFileManager),
+      enableDocker: Boolean(hostData.enableDocker),
+      showTerminalInSidebar: Boolean(hostData.showTerminalInSidebar),
+      showFileManagerInSidebar: Boolean(hostData.showFileManagerInSidebar),
+      showTunnelInSidebar: Boolean(hostData.showTunnelInSidebar),
+      showDockerInSidebar: Boolean(hostData.showDockerInSidebar),
+      showServerStatsInSidebar: Boolean(hostData.showServerStatsInSidebar),
       defaultPath: hostData.defaultPath || "/",
       tunnelConnections: hostData.tunnelConnections || [],
       jumpHosts: hostData.jumpHosts || [],
       quickActions: hostData.quickActions || [],
+      sudoPassword: hostData.sudoPassword || null,
       statsConfig: hostData.statsConfig
         ? typeof hostData.statsConfig === "string"
           ? hostData.statsConfig
           : JSON.stringify(hostData.statsConfig)
         : null,
       terminalConfig: hostData.terminalConfig || null,
+      dockerConfig: hostData.dockerConfig || null,
       forceKeyboardInteractive: Boolean(hostData.forceKeyboardInteractive),
+      notes: hostData.notes || "",
+      useSocks5: Boolean(hostData.useSocks5),
+      socks5Host: hostData.socks5Host || null,
+      socks5Port: hostData.socks5Port || null,
+      socks5Username: hostData.socks5Username || null,
+      socks5Password: hostData.socks5Password || null,
+      socks5ProxyChain: hostData.socks5ProxyChain || null,
+      macAddress: hostData.macAddress || null,
+      portKnockSequence: hostData.portKnockSequence || null,
     };
 
     if (!submitData.enableTunnel) {
@@ -736,6 +754,7 @@ export async function updateSSHHost(
 ): Promise<SSHHost> {
   try {
     const submitData = {
+      connectionType: hostData.connectionType || "ssh",
       name: hostData.name || "",
       ip: hostData.ip,
       port: parseInt(hostData.port.toString()) || 22,
@@ -754,17 +773,34 @@ export async function updateSSHHost(
       enableTerminal: Boolean(hostData.enableTerminal),
       enableTunnel: Boolean(hostData.enableTunnel),
       enableFileManager: Boolean(hostData.enableFileManager),
+      enableDocker: Boolean(hostData.enableDocker),
+      showTerminalInSidebar: Boolean(hostData.showTerminalInSidebar),
+      showFileManagerInSidebar: Boolean(hostData.showFileManagerInSidebar),
+      showTunnelInSidebar: Boolean(hostData.showTunnelInSidebar),
+      showDockerInSidebar: Boolean(hostData.showDockerInSidebar),
+      showServerStatsInSidebar: Boolean(hostData.showServerStatsInSidebar),
       defaultPath: hostData.defaultPath || "/",
       tunnelConnections: hostData.tunnelConnections || [],
       jumpHosts: hostData.jumpHosts || [],
       quickActions: hostData.quickActions || [],
+      sudoPassword: hostData.sudoPassword || null,
       statsConfig: hostData.statsConfig
         ? typeof hostData.statsConfig === "string"
           ? hostData.statsConfig
           : JSON.stringify(hostData.statsConfig)
         : null,
       terminalConfig: hostData.terminalConfig || null,
+      dockerConfig: hostData.dockerConfig || null,
       forceKeyboardInteractive: Boolean(hostData.forceKeyboardInteractive),
+      notes: hostData.notes || "",
+      useSocks5: Boolean(hostData.useSocks5),
+      socks5Host: hostData.socks5Host || null,
+      socks5Port: hostData.socks5Port || null,
+      socks5Username: hostData.socks5Username || null,
+      socks5Password: hostData.socks5Password || null,
+      socks5ProxyChain: hostData.socks5ProxyChain || null,
+      macAddress: hostData.macAddress || null,
+      portKnockSequence: hostData.portKnockSequence || null,
     };
 
     if (!submitData.enableTunnel) {

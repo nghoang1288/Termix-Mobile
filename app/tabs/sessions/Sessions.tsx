@@ -616,8 +616,8 @@ export default function Sessions() {
                 hostConfig={{
                   id: parseInt(session.host.id.toString()),
                   name: session.host.name,
-                  enableTunnel: session.host.enableTunnel,
-                  tunnelConnections: session.host.tunnelConnections,
+                  enableTunnel: Boolean(session.host.enableTunnel),
+                  tunnelConnections: session.host.tunnelConnections || [],
                 }}
                 isVisible={session.id === activeSessionId}
                 title={session.title}

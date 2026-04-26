@@ -10,10 +10,7 @@ import {
 } from "react-native";
 import {
   Terminal,
-  Server,
   FolderOpen,
-  Key,
-  Lock,
   MoreVertical,
   X,
   Activity,
@@ -47,17 +44,6 @@ function Host({ host, status, isLast = false }: HostProps) {
       return DEFAULT_STATS_CONFIG;
     }
   })();
-
-  const getStatusColor = () => {
-    switch (status) {
-      case "online":
-        return "bg-green-500";
-      case "offline":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
 
   const getStatusPalette = () => {
     switch (status) {
@@ -116,6 +102,18 @@ function Host({ host, status, isLast = false }: HostProps) {
 
   const handleStatsPress = () => {
     navigateToSessions(host, "stats");
+    setShowContextMenu(false);
+  };
+
+  const handleTunnelPress = () => {
+    navigateToSessions(
+      {
+        ...host,
+        enableTunnel: true,
+        tunnelConnections: host.tunnelConnections || [],
+      },
+      "tunnel",
+    );
     setShowContextMenu(false);
   };
 
@@ -425,31 +423,24 @@ function Host({ host, status, isLast = false }: HostProps) {
                       </TouchableOpacity>
                     )}
 
-                    {host.enableTunnel &&
-                      host.tunnelConnections &&
-                      host.tunnelConnections.length > 0 && (
-                        <TouchableOpacity
-                          onPress={() => {
-                            navigateToSessions(host, "tunnel");
-                            setShowContextMenu(false);
-                          }}
-                          className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
-                          activeOpacity={0.7}
+                    <TouchableOpacity
+                      onPress={handleTunnelPress}
+                      className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                      activeOpacity={0.7}
+                    >
+                      <Activity size={20} color="#FFFFFF" />
+                      <View className="flex-1">
+                        <Text className="text-white font-medium">
+                          Port Forwarding
+                        </Text>
+                        <Text
+                          className="text-gray-400 text-xs"
+                          numberOfLines={1}
                         >
-                          <Activity size={20} color="#FFFFFF" />
-                          <View className="flex-1">
-                            <Text className="text-white font-medium">
-                              Manage Tunnels
-                            </Text>
-                            <Text
-                              className="text-gray-400 text-xs"
-                              numberOfLines={1}
-                            >
-                              Browse and control SSH tunnels
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
+                          Create, edit, delete, and control SSH tunnels
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
 
                     <TouchableOpacity
                       className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"

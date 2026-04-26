@@ -109,6 +109,7 @@ const TunnelCard: React.FC<TunnelCardProps> = ({
     statusValue === "RETRYING" ||
     statusValue === "WAITING";
 
+  const tunnelType = tunnel.tunnelType || "remote";
   const portMapping = `${tunnel.sourcePort} -> ${tunnel.endpointHost}:${tunnel.endpointPort}`;
 
   return (
@@ -139,7 +140,7 @@ const TunnelCard: React.FC<TunnelCardProps> = ({
             }}
             numberOfLines={1}
           >
-            Tunnel
+            {tunnelType === "local" ? "Local Tunnel" : "Remote Tunnel"}
           </Text>
         </View>
         <View

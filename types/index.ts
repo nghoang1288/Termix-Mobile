@@ -11,6 +11,14 @@ export interface QuickAction {
   snippetId: number;
 }
 
+export interface ProxyNode {
+  host: string;
+  port: number;
+  type: 4 | 5 | "http";
+  username?: string;
+  password?: string;
+}
+
 export interface SSHHost {
   id: number;
   connectionType?: string;
@@ -26,6 +34,7 @@ export interface SSHHost {
   key?: string;
   keyPassword?: string;
   keyType?: string;
+  sudoPassword?: string;
   forceKeyboardInteractive?: boolean;
 
   autostartPassword?: string;
@@ -38,12 +47,32 @@ export interface SSHHost {
   enableTerminal: boolean;
   enableTunnel: boolean;
   enableFileManager: boolean;
+  enableDocker?: boolean;
+  showTerminalInSidebar?: boolean;
+  showFileManagerInSidebar?: boolean;
+  showTunnelInSidebar?: boolean;
+  showDockerInSidebar?: boolean;
+  showServerStatsInSidebar?: boolean;
   defaultPath: string;
   tunnelConnections: TunnelConnection[];
   jumpHosts?: JumpHost[];
   quickActions?: QuickAction[];
   statsConfig?: string;
   terminalConfig?: TerminalConfig;
+  dockerConfig?: Record<string, unknown> | null;
+  notes?: string;
+  useSocks5?: boolean;
+  socks5Host?: string;
+  socks5Port?: number;
+  socks5Username?: string;
+  socks5Password?: string;
+  socks5ProxyChain?: ProxyNode[];
+  macAddress?: string;
+  portKnockSequence?: {
+    port: number;
+    protocol?: "tcp" | "udp";
+    delay?: number;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -58,6 +87,7 @@ export interface QuickActionData {
 }
 
 export interface SSHHostData {
+  connectionType?: string;
   name?: string;
   ip: string;
   port: number;
@@ -70,11 +100,18 @@ export interface SSHHostData {
   key?: File | null;
   keyPassword?: string;
   keyType?: string;
+  sudoPassword?: string;
   credentialId?: number | null;
   overrideCredentialUsername?: boolean;
   enableTerminal?: boolean;
   enableTunnel?: boolean;
   enableFileManager?: boolean;
+  enableDocker?: boolean;
+  showTerminalInSidebar?: boolean;
+  showFileManagerInSidebar?: boolean;
+  showTunnelInSidebar?: boolean;
+  showDockerInSidebar?: boolean;
+  showServerStatsInSidebar?: boolean;
   defaultPath?: string;
   forceKeyboardInteractive?: boolean;
   tunnelConnections?: TunnelConnection[];
@@ -82,6 +119,22 @@ export interface SSHHostData {
   quickActions?: QuickActionData[];
   statsConfig?: string | Record<string, unknown>;
   terminalConfig?: TerminalConfig;
+  dockerConfig?: Record<string, unknown> | null;
+  notes?: string;
+  useSocks5?: boolean;
+  socks5Host?: string;
+  socks5Port?: number;
+  socks5Username?: string;
+  socks5Password?: string;
+  socks5ProxyChain?: ProxyNode[] | null;
+  macAddress?: string;
+  portKnockSequence?:
+    | {
+        port: number;
+        protocol?: "tcp" | "udp";
+        delay?: number;
+      }[]
+    | null;
 }
 
 export interface SSHFolder {
@@ -158,6 +211,7 @@ export interface CredentialData {
 // ============================================================================
 
 export interface TunnelConnection {
+  tunnelType?: "local" | "remote";
   sourcePort: number;
   endpointPort: number;
   endpointHost: string;
@@ -175,6 +229,10 @@ export interface TunnelConnection {
 
 export interface TunnelConfig {
   name: string;
+  tunnelType?: "local" | "remote";
+  sourceHostId: number;
+  tunnelIndex: number;
+  requestingUserId?: string;
   hostName: string;
   sourceIP: string;
   sourceSSHPort: number;
@@ -186,6 +244,7 @@ export interface TunnelConfig {
   sourceKeyType?: string;
   sourceCredentialId?: number;
   sourceUserId?: string;
+  endpointHost: string;
   endpointIP: string;
   endpointSSHPort: number;
   endpointUsername: string;
@@ -202,6 +261,12 @@ export interface TunnelConfig {
   retryInterval: number;
   autoStart: boolean;
   isPinned: boolean;
+  useSocks5?: boolean;
+  socks5Host?: string;
+  socks5Port?: number;
+  socks5Username?: string;
+  socks5Password?: string;
+  socks5ProxyChain?: ProxyNode[];
 }
 
 export interface TunnelStatus {

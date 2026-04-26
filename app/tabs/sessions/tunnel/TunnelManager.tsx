@@ -73,13 +73,17 @@ export const TunnelManager = forwardRef<
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allHosts, setAllHosts] = useState<SSHHost[]>([]);
-  const [currentHostConfig, setCurrentHostConfig] = useState(hostConfig);
+  const [currentHostConfig, setCurrentHostConfig] = useState({
+    ...hostConfig,
+    tunnelConnections: hostConfig.tunnelConnections || [],
+  });
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingTunnelIndex, setEditingTunnelIndex] = useState<number | null>(
     null,
   );
   const [isSavingTunnel, setIsSavingTunnel] = useState(false);
   const [tunnelForm, setTunnelForm] = useState({
+    tunnelType: "local" as NonNullable<TunnelConnection["tunnelType"]>,
     sourcePort: "",
     endpointHost: "",
     endpointPort: "",
@@ -92,6 +96,11 @@ export const TunnelManager = forwardRef<
   const padding = getResponsivePadding(isLandscape);
   const columnCount = getColumnCount(width, isLandscape, 350);
   const isDirectMode = connectionMode === "direct";
+  const getTunnelName = useCallback(
+    (tunnel: TunnelConnection, tunnelIndex: number) =>
+      `${currentHostConfig.id}::${tunnelIndex}::${currentHostConfig.name || `${currentHostConfig.id}`}::${tunnel.sourcePort}::${tunnel.endpointHost}::${tunnel.endpointPort}`,
+    [currentHostConfig.id, currentHostConfig.name],
+  );
 
   useEffect(() => {
     if (!isVisible) return;
@@ -138,7 +147,7 @@ export const TunnelManager = forwardRef<
           id: updatedHost.id,
           name: updatedHost.name,
           enableTunnel: updatedHost.enableTunnel,
-          tunnelConnections: updatedHost.tunnelConnections,
+          tunnelConnections: updatedHost.tunnelConnections || [],
         });
       }
     } catch (err: any) {
@@ -187,7 +196,8 @@ export const TunnelManager = forwardRef<
     tunnelIndex: number,
   ) => {
     const tunnel = currentHostConfig.tunnelConnections[tunnelIndex];
-    const tunnelName = `${currentHostConfig.name || `${currentHostConfig.id}`}_${tunnel.sourcePort}_${tunnel.endpointHost}_${tunnel.endpointPort}`;
+    const tunnelName = getTunnelName(tunnel, tunnelIndex);
+    const tunnelType = tunnel.tunnelType || "remote";
 
     setLoadingTunnels((prev) => new Set(prev).add(tunnelName));
 
@@ -199,6 +209,12 @@ export const TunnelManager = forwardRef<
         }
 
         if (isDirectMode) {
+          if (tunnelType !== "local") {
+            throw new Error(
+              "Direct mode only supports local (-L) port forwarding. Switch to Via Termix server for remote (-R) tunnels.",
+            );
+          }
+
           const endpointHost = allHosts.find(
             (h) =>
               h.name === tunnel.endpointHost ||
@@ -228,6 +244,9 @@ export const TunnelManager = forwardRef<
 
         const tunnelConfig = {
           name: tunnelName,
+          tunnelType,
+          sourceHostId: fullHost.id,
+          tunnelIndex,
           hostName: fullHost.name || `${fullHost.username}@${fullHost.ip}`,
           sourceIP: fullHost.ip,
           sourceSSHPort: fullHost.port,
@@ -242,6 +261,7 @@ export const TunnelManager = forwardRef<
             fullHost.authType === "key" ? fullHost.keyType : undefined,
           sourceCredentialId: fullHost.credentialId,
           sourceUserId: fullHost.userId,
+          endpointHost: tunnel.endpointHost,
           endpointIP: endpointHost.ip,
           endpointSSHPort: endpointHost.port,
           endpointUsername: endpointHost.username,
@@ -266,6 +286,12 @@ export const TunnelManager = forwardRef<
           retryInterval: tunnel.retryInterval * 1000,
           autoStart: tunnel.autoStart,
           isPinned: fullHost.pin,
+          useSocks5: fullHost.useSocks5,
+          socks5Host: fullHost.socks5Host,
+          socks5Port: fullHost.socks5Port,
+          socks5Username: fullHost.socks5Username,
+          socks5Password: fullHost.socks5Password,
+          socks5ProxyChain: fullHost.socks5ProxyChain,
         };
 
         await connectTunnel(tunnelConfig);
@@ -312,6 +338,7 @@ export const TunnelManager = forwardRef<
   const openNewTunnelEditor = () => {
     setEditingTunnelIndex(null);
     setTunnelForm({
+      tunnelType: "local",
       sourcePort: "",
       endpointHost: "",
       endpointPort: "",
@@ -325,6 +352,7 @@ export const TunnelManager = forwardRef<
   const openEditTunnelEditor = (tunnel: TunnelConnection, index: number) => {
     setEditingTunnelIndex(index);
     setTunnelForm({
+      tunnelType: tunnel.tunnelType || "remote",
       sourcePort: String(tunnel.sourcePort),
       endpointHost: tunnel.endpointHost,
       endpointPort: String(tunnel.endpointPort),
@@ -348,6 +376,7 @@ export const TunnelManager = forwardRef<
     host: SSHHost,
     tunnelConnections: TunnelConnection[],
   ): SSHHostData => ({
+    connectionType: host.connectionType || "ssh",
     name: host.name,
     ip: host.ip,
     port: host.port,
@@ -360,11 +389,18 @@ export const TunnelManager = forwardRef<
     key: host.key as any,
     keyPassword: host.keyPassword,
     keyType: host.keyType,
+    sudoPassword: host.sudoPassword,
     credentialId: host.credentialId ?? null,
     overrideCredentialUsername: host.overrideCredentialUsername,
     enableTerminal: host.enableTerminal,
     enableTunnel: tunnelConnections.length > 0,
     enableFileManager: host.enableFileManager,
+    enableDocker: host.enableDocker,
+    showTerminalInSidebar: host.showTerminalInSidebar,
+    showFileManagerInSidebar: host.showFileManagerInSidebar,
+    showTunnelInSidebar: host.showTunnelInSidebar,
+    showDockerInSidebar: host.showDockerInSidebar,
+    showServerStatsInSidebar: host.showServerStatsInSidebar,
     defaultPath: host.defaultPath,
     forceKeyboardInteractive: host.forceKeyboardInteractive,
     tunnelConnections,
@@ -372,6 +408,16 @@ export const TunnelManager = forwardRef<
     quickActions: host.quickActions,
     statsConfig: host.statsConfig,
     terminalConfig: host.terminalConfig,
+    dockerConfig: host.dockerConfig,
+    notes: host.notes,
+    useSocks5: host.useSocks5,
+    socks5Host: host.socks5Host,
+    socks5Port: host.socks5Port,
+    socks5Username: host.socks5Username,
+    socks5Password: host.socks5Password,
+    socks5ProxyChain: host.socks5ProxyChain,
+    macAddress: host.macAddress,
+    portKnockSequence: host.portKnockSequence,
   });
 
   const saveTunnelConfiguration = async () => {
@@ -413,6 +459,7 @@ export const TunnelManager = forwardRef<
         : currentHostConfig.tunnelConnections[editingTunnelIndex];
     const nextTunnel: TunnelConnection = {
       ...existingTunnel,
+      tunnelType: tunnelForm.tunnelType,
       sourcePort,
       endpointHost,
       endpointPort,
@@ -439,14 +486,16 @@ export const TunnelManager = forwardRef<
         id: updatedHost.id,
         name: updatedHost.name,
         enableTunnel: updatedHost.enableTunnel,
-        tunnelConnections: updatedHost.tunnelConnections,
+        tunnelConnections: updatedHost.tunnelConnections || [],
       });
       setAllHosts((hosts) =>
         hosts.map((host) => (host.id === updatedHost.id ? updatedHost : host)),
       );
       setEditorVisible(false);
       showToast.success(
-        editingTunnelIndex === null ? "Tunnel added" : "Tunnel updated",
+        editingTunnelIndex === null
+          ? "Port forward added"
+          : "Port forward updated",
       );
       await fetchTunnelStatuses(false);
     } catch (err: any) {
@@ -475,7 +524,7 @@ export const TunnelManager = forwardRef<
               return;
             }
 
-            const tunnelName = `${currentHostConfig.name || `${currentHostConfig.id}`}_${tunnel.sourcePort}_${tunnel.endpointHost}_${tunnel.endpointPort}`;
+            const tunnelName = getTunnelName(tunnel, index);
             const status = tunnelStatuses[tunnelName];
             const nextTunnels = currentHostConfig.tunnelConnections.filter(
               (_item, itemIndex) => itemIndex !== index,
@@ -499,14 +548,14 @@ export const TunnelManager = forwardRef<
                 id: updatedHost.id,
                 name: updatedHost.name,
                 enableTunnel: updatedHost.enableTunnel,
-                tunnelConnections: updatedHost.tunnelConnections,
+                tunnelConnections: updatedHost.tunnelConnections || [],
               });
               setAllHosts((hosts) =>
                 hosts.map((host) =>
                   host.id === updatedHost.id ? updatedHost : host,
                 ),
               );
-              showToast.success("Tunnel deleted");
+              showToast.success("Port forward deleted");
               await fetchTunnelStatuses(false);
             } catch (err: any) {
               showToast.error(err?.message || "Failed to delete tunnel");
@@ -621,7 +670,7 @@ export const TunnelManager = forwardRef<
               marginTop: 16,
             }}
           >
-            No Tunnels Configured
+            No Port Forwards Yet
           </Text>
           <Text
             style={{
@@ -631,7 +680,7 @@ export const TunnelManager = forwardRef<
               fontSize: 14,
             }}
           >
-            This host does not have any SSH tunnels configured.
+            Create a local or remote port forward through this SSH host.
           </Text>
           <Text
             style={{
@@ -641,7 +690,7 @@ export const TunnelManager = forwardRef<
               fontSize: 14,
             }}
           >
-            Add a tunnel here or configure it from the desktop app.
+            Direct mode opens the local port on this Android device.
           </Text>
           <TouchableOpacity
             onPress={openNewTunnelEditor}
@@ -664,7 +713,7 @@ export const TunnelManager = forwardRef<
                 marginLeft: 8,
               }}
             >
-              Add Tunnel
+              Add Port Forward
             </Text>
           </TouchableOpacity>
         </View>
@@ -700,11 +749,11 @@ export const TunnelManager = forwardRef<
               <Text
                 style={{ color: "#ffffff", fontSize: 24, fontWeight: "700" }}
               >
-                SSH Tunnels
+                Port Forwarding
               </Text>
               <Text style={{ color: "#9CA3AF", fontSize: 14, marginTop: 4 }}>
                 {isDirectMode
-                  ? "Direct SSH mode - phone opens local forwards. "
+                  ? "Direct mode - phone opens local port forwards. "
                   : ""}
                 {currentHostConfig.tunnelConnections.length} tunnel
                 {currentHostConfig.tunnelConnections.length !== 1
@@ -746,7 +795,7 @@ export const TunnelManager = forwardRef<
             }}
           >
             {currentHostConfig.tunnelConnections.map((tunnel, idx) => {
-              const tunnelName = `${currentHostConfig.name || `${currentHostConfig.id}`}_${tunnel.sourcePort}_${tunnel.endpointHost}_${tunnel.endpointPort}`;
+              const tunnelName = getTunnelName(tunnel, idx);
               const status = tunnelStatuses[tunnelName] || null;
               const isLoadingTunnel = loadingTunnels.has(tunnelName);
 
@@ -875,10 +924,12 @@ export const TunnelManager = forwardRef<
                     fontWeight: "700",
                   }}
                 >
-                  {editingTunnelIndex === null ? "Add Tunnel" : "Edit Tunnel"}
+                  {editingTunnelIndex === null
+                    ? "Add Port Forward"
+                    : "Edit Port Forward"}
                 </Text>
                 <Text style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>
-                  Local port forwarding through {currentHostConfig.name}
+                  Configure local (-L) or remote (-R) forwarding
                 </Text>
               </View>
               <TouchableOpacity
@@ -899,6 +950,71 @@ export const TunnelManager = forwardRef<
               contentContainerStyle={{ padding: 18, gap: 14 }}
               keyboardShouldPersistTaps="handled"
             >
+              <View>
+                <Text
+                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                >
+                  Tunnel Type
+                </Text>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  {(["local", "remote"] as const).map((type) => {
+                    const selected = tunnelForm.tunnelType === type;
+                    return (
+                      <TouchableOpacity
+                        key={type}
+                        onPress={() =>
+                          setTunnelForm((form) => ({
+                            ...form,
+                            tunnelType: type,
+                          }))
+                        }
+                        style={{
+                          backgroundColor: selected
+                            ? "rgba(34, 197, 94, 0.16)"
+                            : BACKGROUNDS.CARD,
+                          borderColor: selected
+                            ? "#22C55E"
+                            : BORDER_COLORS.BUTTON,
+                          borderRadius: RADIUS.BUTTON,
+                          borderWidth: 1,
+                          flex: 1,
+                          paddingHorizontal: 12,
+                          paddingVertical: 11,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#ffffff",
+                            fontSize: 13,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {type === "local" ? "Local (-L)" : "Remote (-R)"}
+                        </Text>
+                        <Text
+                          style={{
+                            color: "#9CA3AF",
+                            fontSize: 11,
+                            marginTop: 4,
+                          }}
+                        >
+                          {type === "local"
+                            ? "Phone/server listens locally"
+                            : "Remote host listens"}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {isDirectMode && tunnelForm.tunnelType === "remote" && (
+                  <Text
+                    style={{ color: "#FBBF24", fontSize: 11, marginTop: 8 }}
+                  >
+                    Remote (-R) tunnels require Via Termix server mode.
+                  </Text>
+                )}
+              </View>
+
               <View>
                 <Text
                   style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
@@ -1154,7 +1270,7 @@ export const TunnelManager = forwardRef<
                       fontWeight: "700",
                     }}
                   >
-                    Save Tunnel
+                    Save Port Forward
                   </Text>
                 )}
               </TouchableOpacity>
