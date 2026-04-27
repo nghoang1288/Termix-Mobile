@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  Linking,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
 import { useAppContext } from "@/app/AppContext";
 import { useTerminalSessions } from "@/app/contexts/TerminalSessionsContext";
 import { clearAuth, logoutUser } from "@/app/main-axios";
@@ -22,6 +29,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const [terminalConnectionMode, setLocalTerminalConnectionMode] =
     useState<TerminalConnectionMode>("direct");
+  const appVersion = Constants.expoConfig?.version || "1.3.2";
 
   const padding = getResponsivePadding(isLandscape);
 
@@ -188,6 +196,47 @@ export default function Settings() {
             To delete your account, visit your self-hosted SSHBridge instance
             and log in.
           </Text>
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-white text-lg font-semibold mb-3">About</Text>
+          <View className="bg-[#1a1a1a] border border-[#303032] px-6 py-4 rounded-lg">
+            <Text className="text-white font-semibold text-base">
+              SSHBridge Mobile
+            </Text>
+            <Text className="text-gray-400 text-sm mt-1">
+              Version {appVersion}
+            </Text>
+            <Text className="text-gray-400 text-sm mt-3">
+              Native mobile SSH terminal with direct device connections,
+              SSHBridge server relay mode, and tunnel/port forwarding
+              management.
+            </Text>
+
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL(
+                  "https://github.com/nghoang1288/SSHBridge-Mobile",
+                )
+              }
+              className="mt-4 bg-[#111113] border border-[#303032] px-4 py-3 rounded-lg"
+            >
+              <Text className="text-green-500 font-semibold">
+                Open mobile repository
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL("https://github.com/nghoang1288/SSHBridge-Web")
+              }
+              className="mt-3 bg-[#111113] border border-[#303032] px-4 py-3 rounded-lg"
+            >
+              <Text className="text-green-500 font-semibold">
+                Open web/server repository
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </ScrollView>
