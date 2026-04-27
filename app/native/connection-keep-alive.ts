@@ -5,7 +5,7 @@ type KeepAliveNativeModule = {
   stop?: () => Promise<boolean>;
 };
 
-const nativeKeepAlive = NativeModules.TermixConnectionKeepAlive as
+const nativeKeepAlive = NativeModules.SSHBridgeConnectionKeepAlive as
   | KeepAliveNativeModule
   | undefined;
 

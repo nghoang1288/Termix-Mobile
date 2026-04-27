@@ -211,7 +211,7 @@ export const TunnelManager = forwardRef<
         if (isDirectMode) {
           if (tunnelType !== "local") {
             throw new Error(
-              "Direct mode only supports local (-L) port forwarding. Switch to Via Termix server for remote (-R) tunnels.",
+              "Direct mode only supports local (-L) port forwarding. Switch to Via SSHBridge server for remote (-R) tunnels.",
             );
           }
 
@@ -1010,7 +1010,7 @@ export const TunnelManager = forwardRef<
                   <Text
                     style={{ color: "#FBBF24", fontSize: 11, marginTop: 8 }}
                   >
-                    Remote (-R) tunnels require Via Termix server mode.
+                    Remote (-R) tunnels require Via SSHBridge server mode.
                   </Text>
                 )}
               </View>
@@ -1067,7 +1067,7 @@ export const TunnelManager = forwardRef<
                   }}
                 />
                 <Text style={{ color: "#71717A", fontSize: 11, marginTop: 6 }}>
-                  Use a host name already saved in Termix.
+                  Use a host name already saved in SSHBridge.
                 </Text>
                 {allHosts.filter((host) => host.id !== currentHostConfig.id)
                   .length > 0 && (

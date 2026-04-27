@@ -108,7 +108,7 @@ export default function TerminalCustomization() {
           <Text className="text-gray-400 text-sm mb-3">
             Base font size for terminal text. The actual size will be adjusted
             based on your screen width. This number will override the font size
-            you configured on a host in the Termix Web UI.
+            you configured on a host in the SSHBridge Web UI.
           </Text>
           <View className="gap-2">
             {FONT_SIZE_OPTIONS.map((option) => (

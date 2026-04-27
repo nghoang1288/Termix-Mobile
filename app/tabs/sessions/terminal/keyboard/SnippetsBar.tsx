@@ -249,7 +249,7 @@ export default function SnippetsBar({
                 No snippets yet
               </Text>
               <Text className="text-xs text-gray-600 mt-1">
-                Create snippets in the Termix web/desktop version
+                Create snippets in the SSHBridge web/desktop version
               </Text>
             </View>
           )}

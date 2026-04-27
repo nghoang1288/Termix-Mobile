@@ -355,7 +355,7 @@ export interface HostInfo {
 // ALERT TYPES
 // ============================================================================
 
-export interface TermixAlert {
+export interface SSHBridgeAlert {
   id: string;
   title: string;
   message: string;
@@ -571,12 +571,12 @@ export interface FileManagerProps {
 }
 
 export interface AlertCardProps {
-  alert: TermixAlert;
+  alert: SSHBridgeAlert;
   onDismiss: (alertId: string) => void;
 }
 
 export interface AlertManagerProps {
-  alerts: TermixAlert[];
+  alerts: SSHBridgeAlert[];
   onDismiss: (alertId: string) => void;
   loggedIn: boolean;
 }

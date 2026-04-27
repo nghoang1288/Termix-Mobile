@@ -143,10 +143,11 @@ export default function Settings() {
               }`}
             >
               <Text className="text-white font-semibold">
-                Via Termix server
+                Via SSHBridge server
               </Text>
               <Text className="text-gray-400 text-sm mt-1">
-                The Termix backend opens SSH/tunnels and the app controls them.
+                The SSHBridge backend opens SSH/tunnels and the app controls
+                them.
               </Text>
             </TouchableOpacity>
           </View>
@@ -184,8 +185,8 @@ export default function Settings() {
           </TouchableOpacity>
 
           <Text className="text-gray-400 text-sm mt-3">
-            To delete your account, visit your self-hosted Termix instance and
-            log in.
+            To delete your account, visit your self-hosted SSHBridge instance
+            and log in.
           </Text>
         </View>
       </View>

@@ -1,18 +1,18 @@
 {
   "expo": {
-    "name": "Termix",
-    "slug": "termix",
+    "name": "SSHBridge",
+    "slug": "sshbridge",
     "version": "1.3.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "termix-mobile",
-    "githubUrl": "https://github.com/Termix-SSH/Mobile",
+    "scheme": "sshbridge",
+    "githubUrl": "https://github.com/nghoang1288/Termix-Mobile",
     "backgroundColor": "#18181b",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.karmaa.termix",
+      "bundleIdentifier": "com.nghoang.sshbridge",
       "icon": {
         "dark": "./assets/images/ios-dark.png",
         "light": "./assets/images/icon.png",
@@ -25,7 +25,7 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "package": "com.karmaa.termix",
+      "package": "com.nghoang.sshbridge",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#18181b"
@@ -77,11 +77,8 @@
     "extra": {
       "router": {
         "origin": false
-      },
-      "eas": {
-        "projectId": "cf86f530-ca4b-44bf-bb68-4d178b264910"
       }
     },
-    "owner": "termix"
+    "owner": "nghoang1288"
   }
 }

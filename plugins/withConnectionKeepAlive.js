@@ -5,7 +5,7 @@ const {
 const fs = require("fs");
 const path = require("path");
 
-const packageName = "com.karmaa.termix";
+const packageName = "com.nghoang.sshbridge";
 const packagePath = packageName.replace(/\./g, path.sep);
 
 const serviceSource = `package ${packageName}
@@ -22,7 +22,7 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
-class TermixConnectionKeepAliveService : Service() {
+class SSHBridgeConnectionKeepAliveService : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -64,8 +64,8 @@ class TermixConnectionKeepAliveService : Service() {
       ?: "Keeping SSH sessions and tunnels alive"
 
     return NotificationCompat.Builder(this, CHANNEL_ID)
-      .setSmallIcon(R.drawable.ic_stat_termix)
-      .setContentTitle("Termix connections active")
+      .setSmallIcon(R.drawable.ic_stat_sshbridge)
+      .setContentTitle("SSHBridge connections active")
       .setContentText(text)
       .setContentIntent(contentIntent)
       .setOngoing(true)
@@ -87,7 +87,7 @@ class TermixConnectionKeepAliveService : Service() {
       "SSH connection keep alive",
       NotificationManager.IMPORTANCE_LOW,
     ).apply {
-      description = "Keeps active Termix SSH sessions and tunnels running."
+      description = "Keeps active SSHBridge SSH sessions and tunnels running."
       setShowBadge(false)
     }
 
@@ -105,7 +105,7 @@ class TermixConnectionKeepAliveService : Service() {
     const val ACTION_START = "${packageName}.connection_keep_alive.START"
     const val ACTION_STOP = "${packageName}.connection_keep_alive.STOP"
     const val EXTRA_LABEL = "label"
-    private const val CHANNEL_ID = "termix_connection_keep_alive"
+    private const val CHANNEL_ID = "sshbridge_connection_keep_alive"
     private const val NOTIFICATION_ID = 4107
   }
 }
@@ -120,20 +120,20 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 
-class TermixConnectionKeepAliveModule(
+class SSHBridgeConnectionKeepAliveModule(
   private val reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
-  override fun getName(): String = "TermixConnectionKeepAlive"
+  override fun getName(): String = "SSHBridgeConnectionKeepAlive"
 
   @ReactMethod
   fun start(label: String?, promise: Promise) {
     try {
       val intent = Intent(
         reactContext,
-        TermixConnectionKeepAliveService::class.java,
+        SSHBridgeConnectionKeepAliveService::class.java,
       ).apply {
-        action = TermixConnectionKeepAliveService.ACTION_START
-        putExtra(TermixConnectionKeepAliveService.EXTRA_LABEL, label)
+        action = SSHBridgeConnectionKeepAliveService.ACTION_START
+        putExtra(SSHBridgeConnectionKeepAliveService.EXTRA_LABEL, label)
       }
 
       ContextCompat.startForegroundService(reactContext, intent)
@@ -148,9 +148,9 @@ class TermixConnectionKeepAliveModule(
     try {
       val intent = Intent(
         reactContext,
-        TermixConnectionKeepAliveService::class.java,
+        SSHBridgeConnectionKeepAliveService::class.java,
       ).apply {
-        action = TermixConnectionKeepAliveService.ACTION_STOP
+        action = SSHBridgeConnectionKeepAliveService.ACTION_STOP
       }
 
       reactContext.startService(intent)
@@ -169,11 +169,11 @@ import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
 
-class TermixNativePackage : ReactPackage {
+class SSHBridgeNativePackage : ReactPackage {
   override fun createNativeModules(
     reactContext: ReactApplicationContext,
   ): List<NativeModule> =
-    listOf(TermixConnectionKeepAliveModule(reactContext))
+    listOf(SSHBridgeConnectionKeepAliveModule(reactContext))
 
   override fun createViewManagers(
     reactContext: ReactApplicationContext,
@@ -218,7 +218,7 @@ function writeFileIfChanged(filePath, content) {
 function patchMainApplication(filePath) {
   if (!fs.existsSync(filePath)) return;
 
-  const marker = "add(TermixNativePackage())";
+  const marker = "add(SSHBridgeNativePackage())";
   let source = fs.readFileSync(filePath, "utf8");
   if (source.includes(marker)) return;
 
@@ -248,10 +248,10 @@ const withConnectionKeepAlive = (config) => {
       const services = application.service;
       const service = services.find(
         (item) =>
-          item.$?.["android:name"] === ".TermixConnectionKeepAliveService",
+          item.$?.["android:name"] === ".SSHBridgeConnectionKeepAliveService",
       );
       const attributes = {
-        "android:name": ".TermixConnectionKeepAliveService",
+        "android:name": ".SSHBridgeConnectionKeepAliveService",
         "android:exported": "false",
         "android:stopWithTask": "false",
         "android:foregroundServiceType": "dataSync",
@@ -291,19 +291,19 @@ const withConnectionKeepAlive = (config) => {
       );
 
       writeFileIfChanged(
-        path.join(javaRoot, "TermixConnectionKeepAliveService.kt"),
+        path.join(javaRoot, "SSHBridgeConnectionKeepAliveService.kt"),
         serviceSource,
       );
       writeFileIfChanged(
-        path.join(javaRoot, "TermixConnectionKeepAliveModule.kt"),
+        path.join(javaRoot, "SSHBridgeConnectionKeepAliveModule.kt"),
         moduleSource,
       );
       writeFileIfChanged(
-        path.join(javaRoot, "TermixNativePackage.kt"),
+        path.join(javaRoot, "SSHBridgeNativePackage.kt"),
         packageSource,
       );
       writeFileIfChanged(
-        path.join(drawableRoot, "ic_stat_termix.xml"),
+        path.join(drawableRoot, "ic_stat_sshbridge.xml"),
         notificationIcon,
       );
       patchMainApplication(path.join(javaRoot, "MainApplication.kt"));

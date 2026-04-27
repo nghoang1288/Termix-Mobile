@@ -133,7 +133,7 @@ export default function ServerForm() {
                 />
               </View>
               <Text className="text-gray-400 text-xs mt-2">
-                Enter the address of your self-hosted Termix server.
+                Enter the address of your self-hosted SSHBridge server.
               </Text>
             </View>
 

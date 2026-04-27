@@ -228,7 +228,7 @@ export default function LoginForm() {
       >
         <View className="mb-8">
           <Text className="text-center text-3xl font-bold text-white">
-            Termix
+            SSHBridge
           </Text>
           <Text className="mt-2 text-center text-gray-400">
             Sign in directly to your self-hosted server

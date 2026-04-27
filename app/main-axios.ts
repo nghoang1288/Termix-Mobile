@@ -123,11 +123,11 @@ function createApiInstance(
       );
     }
     if (platform.OS === "android") {
-      config.headers["User-Agent"] = "Termix-Mobile/Android";
+      config.headers["User-Agent"] = "SSHBridge-Mobile/Android";
     } else if (platform.OS === "ios") {
-      config.headers["User-Agent"] = "Termix-Mobile/iOS";
+      config.headers["User-Agent"] = "SSHBridge-Mobile/iOS";
     } else {
-      config.headers["User-Agent"] = `Termix-Mobile/${platform.OS}`;
+      config.headers["User-Agent"] = `SSHBridge-Mobile/${platform.OS}`;
     }
 
     return config;
@@ -591,7 +591,7 @@ function handleApiError(error: unknown, operation: string): never {
           errorContext,
         );
         throw new ApiError(
-          "No server configured. Please configure a Termix server first.",
+          "No server configured. Please configure an SSHBridge server first.",
           0,
           "NO_SERVER_CONFIGURED",
         );
@@ -1856,10 +1856,10 @@ async function loginWithFetch(
       "Content-Type": "application/json",
       "User-Agent":
         platform.OS === "android"
-          ? "Termix-Mobile/Android"
+          ? "SSHBridge-Mobile/Android"
           : platform.OS === "ios"
-            ? "Termix-Mobile/iOS"
-            : `Termix-Mobile/${platform.OS}`,
+            ? "SSHBridge-Mobile/iOS"
+            : `SSHBridge-Mobile/${platform.OS}`,
       "X-Electron-App": "true",
     },
     body: JSON.stringify({ username, password }),
@@ -2445,7 +2445,7 @@ export async function getLatestGitHubRelease(): Promise<{
 } | null> {
   try {
     const response = await axios.get(
-      "https://api.github.com/repos/Termix-SSH/Mobile/releases/latest",
+      "https://api.github.com/repos/nghoang1288/Termix-Mobile/releases/latest",
     );
     const release = response.data;
 
@@ -2685,7 +2685,7 @@ export async function getFoldersWithStats(): Promise<any> {
         timeout: 10000,
         headers: {
           Accept: "application/json",
-          "User-Agent": "Termix-Mobile",
+          "User-Agent": "SSHBridge-Mobile",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });

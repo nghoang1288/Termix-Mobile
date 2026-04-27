@@ -1,29 +1,29 @@
-# Repo Stats
+# SSHBridge Mobile
 
-![GitHub Repo stars](https://img.shields.io/github/stars/Termix-SSH/Mobile?style=flat&label=Stars)
-![GitHub forks](https://img.shields.io/github/forks/Termix-SSH/Mobile?style=flat&label=Forks)
-![GitHub Release](https://img.shields.io/github/v/release/Termix-SSH/Mobile?style=flat&label=Release)
+![GitHub Repo stars](https://img.shields.io/github/stars/nghoang1288/Termix-Mobile?style=flat&label=Stars)
+![GitHub forks](https://img.shields.io/github/forks/nghoang1288/Termix-Mobile?style=flat&label=Forks)
+![GitHub Release](https://img.shields.io/github/v/release/nghoang1288/Termix-Mobile?style=flat&label=Release)
 <a href="https://discord.gg/jVQGdvHDrf"><img alt="Discord" src="https://img.shields.io/discord/1347374268253470720"></a>
 
 # Overview
 
-Full remote SSH control of your servers with Termix, the ultimate SSH server management tool. It connects to your existing Termix server to provide you with SSH server access.
+Full remote SSH control of your servers with SSHBridge, a mobile SSH terminal and server management tool. It can connect directly from your device or through your existing SSHBridge server.
 
 # Planned Features
 
-See [Projects](https://github.com/orgs/Termix-SSH/projects/2) for all planned features. If you are looking to contribute, see [Contributing](https://github.com/Termix-SSH/Mobile/blob/main/CONTRIBUTING.md).
+See the repository issues and project board for planned SSHBridge features. If you are looking to contribute, see [Contributing](https://github.com/nghoang1288/Termix-Mobile/blob/main/CONTRIBUTING.md).
 
 # Features
 
 - **SSH Terminal** - SSH terminal with multi-session support. Switch between two keyboard modes: the system keyboard and a custom terminal keyboard that is optimized for terminal use. The custom keyboard is completely configurable to your preferences. Has support for background-keepalive, VoiceOver, dication, Bluetooth/physical keyboards, emojis, etc.
 - **SSH File Manager** - View, edit, modify, and move files and folders via SSH.
-- **SSH Server Stats** - Get information on a servers status such as CPU, RAM, HDD, etc. 
+- **SSH Server Stats** - Get information on a servers status such as CPU, RAM, HDD, etc.
 - **SSH Tunnels** - Start, stop, and manage SSH tunnels.
-- **Server Configuration** - Easily connect to your existing Termix server via IP/domain. It has support for reverse proxy access login pages, logging in with OIDC, and, of course, regular username/password logins.
+- **Server Configuration** - Easily connect to your existing SSHBridge server via IP/domain. It has support for reverse proxy access login pages, logging in with OIDC, and regular username/password logins.
 
 # Installation
 
-Termix Mobile is available for both [Android](https://docs.termix.site/install/connector/android) and [iOS](https://docs.termix.site/install/connector/ios) platforms.
+SSHBridge Mobile is built for Android and iOS.
 
 # Sponsors
 
@@ -59,18 +59,18 @@ Termix Mobile is available for both [Android](https://docs.termix.site/install/c
 
 # Support
 
-If you need help or want to request a feature with Termix Mobile, visit the [Issues](https://github.com/Termix-SSH/Support/issues) page, log in, and press `New Issue`.
+If you need help or want to request a feature with SSHBridge Mobile, visit the [Issues](https://github.com/nghoang1288/Termix-Mobile/issues) page and press `New Issue`.
 Please be as detailed as possible in your issue, preferably written in English. You can also join the [Discord](https://discord.gg/jVQGdvHDrf) server and visit the support
 channel, however, response times may be longer.
 
 # Show-off
 
 <p align="center">
-  <img src="./repo-images/Image 1.png" width="160" alt="Termix Demo 1"/>
-  <img src="./repo-images/Image 2.png" width="160" alt="Termix Demo 2"/>
-  <img src="./repo-images/Image 3.png" width="160" alt="Termix Demo 3"/>
-  <img src="./repo-images/Image 4.png" width="160" alt="Termix Demo 4"/>
-  <img src="./repo-images/Image 5.png" width="160" alt="Termix Demo 5"/>
+  <img src="./repo-images/Image 1.png" width="160" alt="SSHBridge Demo 1"/>
+  <img src="./repo-images/Image 2.png" width="160" alt="SSHBridge Demo 2"/>
+  <img src="./repo-images/Image 3.png" width="160" alt="SSHBridge Demo 3"/>
+  <img src="./repo-images/Image 4.png" width="160" alt="SSHBridge Demo 4"/>
+  <img src="./repo-images/Image 5.png" width="160" alt="SSHBridge Demo 5"/>
 </p>
 
 # License

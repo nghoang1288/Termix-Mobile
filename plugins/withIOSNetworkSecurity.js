@@ -1,4 +1,8 @@
-const { withInfoPlist, withDangerousMod, IOSConfig } = require("@expo/config-plugins");
+const {
+  withInfoPlist,
+  withDangerousMod,
+  IOSConfig,
+} = require("@expo/config-plugins");
 const fs = require("fs");
 
 const withIOSNetworkSecurity = (config) => {
@@ -10,7 +14,7 @@ const withIOSNetworkSecurity = (config) => {
     };
 
     config.modResults.NSLocalNetworkUsageDescription =
-      "Termix needs to connect to servers to load hosts and initiate SSH connections";
+      "SSHBridge needs to connect to servers to load hosts and initiate SSH connections";
 
     config.modResults.NSBonjourServices = ["_ssh._tcp", "_sftp-ssh._tcp"];
 
@@ -32,8 +36,7 @@ const withIOSNetworkSecurity = (config) => {
         };
 
         IOSConfig.InfoPlist.write(platformProjectRoot, infoPlist);
-      } catch (e) {
-      }
+      } catch (e) {}
 
       return config;
     },
