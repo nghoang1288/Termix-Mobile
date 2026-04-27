@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-Please report any vulnerabilities to [GitHub Security](https://github.com/Termix-SSH/Mobile/security/advisories).
+Please report any vulnerabilities to [GitHub Security](https://github.com/nghoang1288/SSHBridge-Mobile/security/advisories).

@@ -1,8 +1,8 @@
 # SSHBridge Mobile
 
-![GitHub Repo stars](https://img.shields.io/github/stars/nghoang1288/Termix-Mobile?style=flat&label=Stars)
-![GitHub forks](https://img.shields.io/github/forks/nghoang1288/Termix-Mobile?style=flat&label=Forks)
-![GitHub Release](https://img.shields.io/github/v/release/nghoang1288/Termix-Mobile?style=flat&label=Release)
+![GitHub Repo stars](https://img.shields.io/github/stars/nghoang1288/SSHBridge-Mobile?style=flat&label=Stars)
+![GitHub forks](https://img.shields.io/github/forks/nghoang1288/SSHBridge-Mobile?style=flat&label=Forks)
+![GitHub Release](https://img.shields.io/github/v/release/nghoang1288/SSHBridge-Mobile?style=flat&label=Release)
 <a href="https://discord.gg/jVQGdvHDrf"><img alt="Discord" src="https://img.shields.io/discord/1347374268253470720"></a>
 
 # Overview
@@ -11,7 +11,7 @@ Full remote SSH control of your servers with SSHBridge, a mobile SSH terminal an
 
 # Planned Features
 
-See the repository issues and project board for planned SSHBridge features. If you are looking to contribute, see [Contributing](https://github.com/nghoang1288/Termix-Mobile/blob/main/CONTRIBUTING.md).
+See the repository issues and project board for planned SSHBridge features. If you are looking to contribute, see [Contributing](https://github.com/nghoang1288/SSHBridge-Mobile/blob/main/CONTRIBUTING.md).
 
 # Features
 
@@ -59,7 +59,7 @@ SSHBridge Mobile is built for Android and iOS.
 
 # Support
 
-If you need help or want to request a feature with SSHBridge Mobile, visit the [Issues](https://github.com/nghoang1288/Termix-Mobile/issues) page and press `New Issue`.
+If you need help or want to request a feature with SSHBridge Mobile, visit the [Issues](https://github.com/nghoang1288/SSHBridge-Mobile/issues) page and press `New Issue`.
 Please be as detailed as possible in your issue, preferably written in English. You can also join the [Discord](https://discord.gg/jVQGdvHDrf) server and visit the support
 channel, however, response times may be longer.
 

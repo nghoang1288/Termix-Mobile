@@ -6,7 +6,7 @@
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sshbridge",
-    "githubUrl": "https://github.com/nghoang1288/Termix-Mobile",
+    "githubUrl": "https://github.com/nghoang1288/SSHBridge-Mobile",
     "backgroundColor": "#18181b",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

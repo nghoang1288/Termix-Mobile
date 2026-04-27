@@ -10,7 +10,7 @@
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/Termix-SSH/Mobile
+    git clone https://github.com/nghoang1288/SSHBridge-Mobile
     ```
 2. Install the dependencies:
     ```sh
@@ -30,7 +30,7 @@ This will start the Expo development server. You can use `Expo Go` or use it in 
 ## Contributing
 
 1. **Fork the repository**: Click the "Fork" button at the top right of
-   the [repository page](https://github.com/Termix-SSH/Mobile).
+   the [repository page](https://github.com/nghoang1288/SSHBridge-Mobile).
 2. **Create a new branch**:
     ```sh
     git checkout -b feature/my-new-feature
