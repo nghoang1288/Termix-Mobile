@@ -2,7 +2,7 @@
   "expo": {
     "name": "SSHBridge",
     "slug": "sshbridge",
-    "version": "1.3.2",
+    "version": "0.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sshbridge",
