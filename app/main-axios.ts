@@ -44,6 +44,11 @@ import {
   isOfflineModeEnabled,
   updateOfflineHost,
 } from "./offline-storage";
+import {
+  deleteSecureItem,
+  migrateLegacyAsyncStorageSecret,
+  setSecureItem,
+} from "./secure-storage";
 
 const platform = Platform;
 
@@ -72,20 +77,25 @@ export async function setCookie(
   value: string,
   days = 7,
 ): Promise<void> {
+  void days;
   try {
-    await AsyncStorage.setItem(name, value);
+    if (name === "jwt") {
+      await setSecureItem(name, value);
+    } else {
+      await AsyncStorage.setItem(name, value);
+    }
   } catch (error) {}
 }
 
 export async function getCookie(name: string): Promise<string | undefined> {
   try {
-    const token = await AsyncStorage.getItem(name);
+    const token =
+      name === "jwt"
+        ? await migrateLegacyAsyncStorageSecret(name)
+        : await AsyncStorage.getItem(name);
     return token || undefined;
   } catch (error) {
-    console.error(
-      `[getCookie] Error reading ${name} from AsyncStorage:`,
-      error,
-    );
+    console.error(`[getCookie] Error reading ${name} from storage:`, error);
     return undefined;
   }
 }
@@ -175,7 +185,7 @@ function createApiInstance(
       );
 
       if (responseTime > 3000) {
-        logger.warn(`🐌 Slow request: ${responseTime}ms`, context);
+        logger.warn(`Slow request: ${responseTime}ms`, context);
       }
 
       return response;
@@ -308,6 +318,7 @@ export async function isAuthenticated(): Promise<boolean> {
 
 export async function clearAuth(): Promise<void> {
   try {
+    await deleteSecureItem("jwt");
     await AsyncStorage.removeItem("jwt");
   } catch (error) {}
 }
@@ -1979,7 +1990,7 @@ export async function loginUser(
     }
 
     if (finalToken) {
-      await AsyncStorage.setItem("jwt", finalToken);
+      await setCookie("jwt", finalToken);
     }
 
     return { ...data, token: finalToken || "" };
@@ -1998,7 +2009,7 @@ export async function loginUser(
         }
 
         if (token) {
-          await AsyncStorage.setItem("jwt", token);
+          await setCookie("jwt", token);
         }
 
         return { ...data, token: token || "" };
@@ -2400,7 +2411,7 @@ export async function verifyTOTPLogin(
     };
 
     if (result.token) {
-      await AsyncStorage.setItem("jwt", result.token);
+      await setCookie("jwt", result.token);
     }
 
     return result;
@@ -2433,7 +2444,7 @@ export async function verifyTOTPLogin(
         };
 
         if (result.token) {
-          await AsyncStorage.setItem("jwt", result.token);
+          await setCookie("jwt", result.token);
         }
 
         return result;
@@ -2697,9 +2708,19 @@ export async function createTerminalWebSocket(): Promise<WebSocket | null> {
     const wsHost = serverUrl.replace(/^https?:\/\//, "");
 
     const cleanHost = wsHost.replace(/\/$/, "");
-    const wsUrl = `${wsProtocol}${cleanHost}/ssh/websocket/?token=${encodeURIComponent(jwtToken)}`;
+    const wsUrl = `${wsProtocol}${cleanHost}/ssh/websocket/`;
+    const WebSocketWithOptions = WebSocket as unknown as new (
+      url: string,
+      protocols?: string | string[],
+      options?: { headers?: Record<string, string> },
+    ) => WebSocket;
 
-    return new WebSocket(wsUrl);
+    return new WebSocketWithOptions(wsUrl, undefined, {
+      headers: {
+        Authorization: `Bearer ${jwtToken}`,
+        Cookie: `jwt=${encodeURIComponent(jwtToken)}`,
+      },
+    });
   } catch (error) {
     return null;
   }

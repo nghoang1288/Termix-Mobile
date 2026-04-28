@@ -169,7 +169,9 @@ const TunnelCard: React.FC<TunnelCardProps> = ({
 
       <View
         style={{
-          backgroundColor: BACKGROUNDS.DARKER,
+          backgroundColor: BACKGROUNDS.BUTTON_ALT,
+          borderColor: BORDER_COLORS.SECONDARY,
+          borderWidth: 1,
           borderRadius: 8,
           padding: 12,
           marginBottom: 12,

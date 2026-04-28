@@ -18,6 +18,7 @@ import {
   BORDER_COLORS,
   BACKGROUNDS,
   RADIUS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 
 interface FileManagerHeaderProps {
@@ -79,7 +80,7 @@ export function FileManagerHeader({
               style={{ marginRight: 8, padding: 4 }}
               activeOpacity={0.7}
             >
-              <ChevronLeft size={chevronSize} color="#9CA3AF" />
+              <ChevronLeft size={chevronSize} color={TEXT_COLORS.TERTIARY} />
             </TouchableOpacity>
           )}
 
@@ -91,7 +92,7 @@ export function FileManagerHeader({
               {index > 0 && breadcrumbs[index - 1] !== "/" && (
                 <Text
                   style={{
-                    color: "#6B7280",
+                    color: TEXT_COLORS.DISABLED,
                     marginHorizontal: 6,
                     fontSize: isLandscape ? 12 : 14,
                   }}
@@ -107,7 +108,7 @@ export function FileManagerHeader({
                   borderRadius: RADIUS.SMALL,
                   backgroundColor:
                     index === breadcrumbs.length - 1
-                      ? BACKGROUNDS.BUTTON_ALT
+                      ? BACKGROUNDS.ACTIVE
                       : "transparent",
                 }}
                 activeOpacity={0.7}
@@ -115,7 +116,9 @@ export function FileManagerHeader({
                 <Text
                   style={{
                     color:
-                      index === breadcrumbs.length - 1 ? "#ffffff" : "#9CA3AF",
+                      index === breadcrumbs.length - 1
+                        ? BACKGROUNDS.CARD
+                        : TEXT_COLORS.TERTIARY,
                     fontWeight:
                       index === breadcrumbs.length - 1 ? "500" : "400",
                     fontSize: isLandscape ? 12 : 14,
@@ -151,7 +154,7 @@ export function FileManagerHeader({
         >
           <RefreshCw
             size={iconSize}
-            color={isLoading ? "#6B7280" : "#9CA3AF"}
+            color={isLoading ? TEXT_COLORS.DISABLED : TEXT_COLORS.PRIMARY}
             style={{
               transform: [{ rotate: isLoading ? "45deg" : "0deg" }],
             }}
@@ -218,7 +221,7 @@ export function FileManagerHeader({
           }}
           activeOpacity={0.7}
         >
-          <MoreVertical size={iconSize} color="#9CA3AF" />
+          <MoreVertical size={iconSize} color={TEXT_COLORS.PRIMARY} />
         </TouchableOpacity>
       </View>
     </View>

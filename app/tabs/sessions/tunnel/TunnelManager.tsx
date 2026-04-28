@@ -50,6 +50,7 @@ import {
   BACKGROUNDS,
   BORDER_COLORS,
   RADIUS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 import TunnelCard from "@/app/tabs/sessions/tunnel/TunnelCard";
 
@@ -568,6 +569,7 @@ export const TunnelManager = forwardRef<
 
   const cardWidth =
     isLandscape && columnCount > 1 ? `${100 / columnCount - 1}%` : "100%";
+  const hasTunnelStatusSnapshot = Object.keys(tunnelStatuses).length > 0;
 
   if (!isVisible) {
     return null;
@@ -582,19 +584,19 @@ export const TunnelManager = forwardRef<
         display: isVisible ? "flex" : "none",
       }}
     >
-      {isLoading && !tunnelStatuses ? (
+      {isLoading && !hasTunnelStatusSnapshot ? (
         <View
           style={{
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            backgroundColor: BACKGROUNDS.DARKEST,
+            backgroundColor: BACKGROUNDS.DARK,
           }}
         >
           <ActivityIndicator size="large" color="#22C55E" />
           <Text
             style={{
-              color: "#9CA3AF",
+              color: TEXT_COLORS.PRIMARY,
               fontSize: 14,
               marginTop: 16,
             }}
@@ -608,14 +610,14 @@ export const TunnelManager = forwardRef<
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            backgroundColor: BACKGROUNDS.DARKEST,
+            backgroundColor: BACKGROUNDS.DARK,
             paddingHorizontal: 24,
           }}
         >
           <Activity size={48} color="#EF4444" />
           <Text
             style={{
-              color: "#ffffff",
+              color: TEXT_COLORS.PRIMARY,
               fontSize: 18,
               fontWeight: "600",
               marginTop: 16,
@@ -626,7 +628,7 @@ export const TunnelManager = forwardRef<
           </Text>
           <Text
             style={{
-              color: "#9CA3AF",
+              color: TEXT_COLORS.TERTIARY,
               fontSize: 14,
               marginTop: 8,
               textAlign: "center",
@@ -664,7 +666,7 @@ export const TunnelManager = forwardRef<
           <Activity size={64} color="#6b7280" />
           <Text
             style={{
-              color: "#9CA3AF",
+              color: TEXT_COLORS.PRIMARY,
               fontSize: 18,
               fontWeight: "600",
               marginTop: 16,
@@ -674,7 +676,7 @@ export const TunnelManager = forwardRef<
           </Text>
           <Text
             style={{
-              color: "#6B7280",
+              color: TEXT_COLORS.TERTIARY,
               textAlign: "center",
               marginTop: 8,
               fontSize: 14,
@@ -684,7 +686,7 @@ export const TunnelManager = forwardRef<
           </Text>
           <Text
             style={{
-              color: "#6B7280",
+              color: TEXT_COLORS.TERTIARY,
               textAlign: "center",
               marginTop: 4,
               fontSize: 14,
@@ -747,11 +749,21 @@ export const TunnelManager = forwardRef<
           >
             <View style={{ flex: 1 }}>
               <Text
-                style={{ color: "#ffffff", fontSize: 24, fontWeight: "700" }}
+                style={{
+                  color: TEXT_COLORS.PRIMARY,
+                  fontSize: 24,
+                  fontWeight: "700",
+                }}
               >
                 Port Forwarding
               </Text>
-              <Text style={{ color: "#9CA3AF", fontSize: 14, marginTop: 4 }}>
+              <Text
+                style={{
+                  color: TEXT_COLORS.TERTIARY,
+                  fontSize: 14,
+                  marginTop: 4,
+                }}
+              >
                 {isDirectMode
                   ? "Direct mode - phone opens local port forwards. "
                   : ""}
@@ -835,10 +847,10 @@ export const TunnelManager = forwardRef<
                         paddingVertical: 10,
                       }}
                     >
-                      <Pencil size={15} color="#E5E7EB" />
+                      <Pencil size={15} color={TEXT_COLORS.PRIMARY} />
                       <Text
                         style={{
-                          color: "#E5E7EB",
+                          color: TEXT_COLORS.PRIMARY,
                           fontSize: 13,
                           fontWeight: "600",
                           marginLeft: 6,
@@ -896,8 +908,8 @@ export const TunnelManager = forwardRef<
         >
           <View
             style={{
-              backgroundColor: BACKGROUNDS.DARKEST,
-              borderTopColor: BORDER_COLORS.PRIMARY,
+              backgroundColor: BACKGROUNDS.CARD,
+              borderTopColor: BORDER_COLORS.SECONDARY,
               borderTopLeftRadius: 18,
               borderTopRightRadius: 18,
               borderTopWidth: 1,
@@ -919,7 +931,7 @@ export const TunnelManager = forwardRef<
               <View>
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color: TEXT_COLORS.PRIMARY,
                     fontSize: 18,
                     fontWeight: "700",
                   }}
@@ -928,21 +940,27 @@ export const TunnelManager = forwardRef<
                     ? "Add Port Forward"
                     : "Edit Port Forward"}
                 </Text>
-                <Text style={{ color: "#9CA3AF", fontSize: 12, marginTop: 2 }}>
+                <Text
+                  style={{
+                    color: TEXT_COLORS.TERTIARY,
+                    fontSize: 12,
+                    marginTop: 2,
+                  }}
+                >
                   Configure local (-L) or remote (-R) forwarding
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setEditorVisible(false)}
                 style={{
-                  backgroundColor: BACKGROUNDS.CARD,
+                  backgroundColor: BACKGROUNDS.BUTTON,
                   borderColor: BORDER_COLORS.BUTTON,
                   borderRadius: 999,
                   borderWidth: 1,
                   padding: 8,
                 }}
               >
-                <X size={18} color="#ffffff" />
+                <X size={18} color={TEXT_COLORS.PRIMARY} />
               </TouchableOpacity>
             </View>
 
@@ -952,7 +970,11 @@ export const TunnelManager = forwardRef<
             >
               <View>
                 <Text
-                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                  style={{
+                    color: TEXT_COLORS.SECONDARY,
+                    fontSize: 13,
+                    marginBottom: 8,
+                  }}
                 >
                   Tunnel Type
                 </Text>
@@ -984,7 +1006,7 @@ export const TunnelManager = forwardRef<
                       >
                         <Text
                           style={{
-                            color: "#ffffff",
+                            color: selected ? "#16A34A" : TEXT_COLORS.PRIMARY,
                             fontSize: 13,
                             fontWeight: "700",
                           }}
@@ -993,7 +1015,7 @@ export const TunnelManager = forwardRef<
                         </Text>
                         <Text
                           style={{
-                            color: "#9CA3AF",
+                            color: TEXT_COLORS.TERTIARY,
                             fontSize: 11,
                             marginTop: 4,
                           }}
@@ -1017,7 +1039,11 @@ export const TunnelManager = forwardRef<
 
               <View>
                 <Text
-                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                  style={{
+                    color: TEXT_COLORS.SECONDARY,
+                    fontSize: 13,
+                    marginBottom: 8,
+                  }}
                 >
                   Source Port
                 </Text>
@@ -1034,7 +1060,7 @@ export const TunnelManager = forwardRef<
                     borderColor: BORDER_COLORS.BUTTON,
                     borderRadius: RADIUS.BUTTON,
                     borderWidth: 1,
-                    color: "#ffffff",
+                    color: TEXT_COLORS.PRIMARY,
                     paddingHorizontal: 12,
                     paddingVertical: 12,
                   }}
@@ -1043,7 +1069,11 @@ export const TunnelManager = forwardRef<
 
               <View>
                 <Text
-                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                  style={{
+                    color: TEXT_COLORS.SECONDARY,
+                    fontSize: 13,
+                    marginBottom: 8,
+                  }}
                 >
                   Endpoint Host
                 </Text>
@@ -1061,12 +1091,18 @@ export const TunnelManager = forwardRef<
                     borderColor: BORDER_COLORS.BUTTON,
                     borderRadius: RADIUS.BUTTON,
                     borderWidth: 1,
-                    color: "#ffffff",
+                    color: TEXT_COLORS.PRIMARY,
                     paddingHorizontal: 12,
                     paddingVertical: 12,
                   }}
                 />
-                <Text style={{ color: "#71717A", fontSize: 11, marginTop: 6 }}>
+                <Text
+                  style={{
+                    color: TEXT_COLORS.TERTIARY,
+                    fontSize: 11,
+                    marginTop: 6,
+                  }}
+                >
                   Use a host name already saved in SSHBridge.
                 </Text>
                 {allHosts.filter((host) => host.id !== currentHostConfig.id)
@@ -1102,7 +1138,12 @@ export const TunnelManager = forwardRef<
                             paddingVertical: 7,
                           }}
                         >
-                          <Text style={{ color: "#E5E7EB", fontSize: 12 }}>
+                          <Text
+                            style={{
+                              color: TEXT_COLORS.SECONDARY,
+                              fontSize: 12,
+                            }}
+                          >
                             {host.name}
                           </Text>
                         </TouchableOpacity>
@@ -1113,7 +1154,11 @@ export const TunnelManager = forwardRef<
 
               <View>
                 <Text
-                  style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                  style={{
+                    color: TEXT_COLORS.SECONDARY,
+                    fontSize: 13,
+                    marginBottom: 8,
+                  }}
                 >
                   Endpoint Port
                 </Text>
@@ -1130,7 +1175,7 @@ export const TunnelManager = forwardRef<
                     borderColor: BORDER_COLORS.BUTTON,
                     borderRadius: RADIUS.BUTTON,
                     borderWidth: 1,
-                    color: "#ffffff",
+                    color: TEXT_COLORS.PRIMARY,
                     paddingHorizontal: 12,
                     paddingVertical: 12,
                   }}
@@ -1140,7 +1185,11 @@ export const TunnelManager = forwardRef<
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                    style={{
+                      color: TEXT_COLORS.SECONDARY,
+                      fontSize: 13,
+                      marginBottom: 8,
+                    }}
                   >
                     Max Retries
                   </Text>
@@ -1157,7 +1206,7 @@ export const TunnelManager = forwardRef<
                       borderColor: BORDER_COLORS.BUTTON,
                       borderRadius: RADIUS.BUTTON,
                       borderWidth: 1,
-                      color: "#ffffff",
+                      color: TEXT_COLORS.PRIMARY,
                       paddingHorizontal: 12,
                       paddingVertical: 12,
                     }}
@@ -1165,7 +1214,11 @@ export const TunnelManager = forwardRef<
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
-                    style={{ color: "#D1D5DB", fontSize: 13, marginBottom: 8 }}
+                    style={{
+                      color: TEXT_COLORS.SECONDARY,
+                      fontSize: 13,
+                      marginBottom: 8,
+                    }}
                   >
                     Retry Seconds
                   </Text>
@@ -1182,7 +1235,7 @@ export const TunnelManager = forwardRef<
                       borderColor: BORDER_COLORS.BUTTON,
                       borderRadius: RADIUS.BUTTON,
                       borderWidth: 1,
-                      color: "#ffffff",
+                      color: TEXT_COLORS.PRIMARY,
                       paddingHorizontal: 12,
                       paddingVertical: 12,
                     }}
@@ -1212,11 +1265,17 @@ export const TunnelManager = forwardRef<
                 }}
               >
                 <View>
-                  <Text style={{ color: "#ffffff", fontWeight: "600" }}>
+                  <Text
+                    style={{ color: TEXT_COLORS.PRIMARY, fontWeight: "600" }}
+                  >
                     Auto Start
                   </Text>
                   <Text
-                    style={{ color: "#71717A", fontSize: 11, marginTop: 2 }}
+                    style={{
+                      color: TEXT_COLORS.TERTIARY,
+                      fontSize: 11,
+                      marginTop: 2,
+                    }}
                   >
                     Start this tunnel automatically when supported by server
                   </Text>

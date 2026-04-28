@@ -24,6 +24,7 @@
       }
     },
     "android": {
+      "allowBackup": false,
       "edgeToEdgeEnabled": true,
       "package": "com.nghoang.sshbridge",
       "adaptiveIcon": {
@@ -68,7 +69,8 @@
       "./plugins/withIOSNetworkSecurity.js",
       "./plugins/withNetworkSecurityConfig.js",
       "./plugins/withConnectionKeepAlive.js",
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

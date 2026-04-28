@@ -27,6 +27,7 @@ import {
   BORDER_COLORS,
   RADIUS,
   BACKGROUNDS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 import {
   connectSSH,
@@ -430,13 +431,13 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            backgroundColor: BACKGROUNDS.DARKEST,
+            backgroundColor: BACKGROUNDS.DARK,
           }}
         >
           <Server size={48} color="#EF4444" />
           <Text
             style={{
-              color: "#ffffff",
+              color: TEXT_COLORS.PRIMARY,
               fontSize: 18,
               fontWeight: "600",
               marginTop: 16,
@@ -446,7 +447,7 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
           </Text>
           <Text
             style={{
-              color: "#9CA3AF",
+              color: TEXT_COLORS.TERTIARY,
               fontSize: 14,
               marginTop: 8,
               textAlign: "center",
@@ -462,9 +463,14 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
 
     if (!isConnected) {
       return (
-        <View className="flex-1 bg-dark-bg items-center justify-center">
+        <View
+          className="flex-1 items-center justify-center"
+          style={{ backgroundColor: BACKGROUNDS.DARK }}
+        >
           <ActivityIndicator size="large" color="#22C55E" />
-          <Text className="text-white mt-4">Connecting to {host.name}...</Text>
+          <Text className="mt-4" style={{ color: TEXT_COLORS.PRIMARY }}>
+            Connecting to {host.name}...
+          </Text>
 
           <TOTPDialog
             visible={totpDialog}
@@ -588,14 +594,18 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
                   marginBottom: isLandscape ? 0 : insets.bottom,
                 }}
               >
-                <Text className="text-white text-lg font-semibold mb-4">
+                <Text
+                  className="text-lg font-semibold mb-4"
+                  style={{ color: TEXT_COLORS.PRIMARY }}
+                >
                   Create New{" "}
                   {createDialog.type === "folder" ? "Folder" : "File"}
                 </Text>
                 <TextInput
-                  className="px-4 py-3 text-white mb-4"
+                  className="px-4 py-3 mb-4"
                   style={{
-                    backgroundColor: BACKGROUNDS.DARKER,
+                    color: TEXT_COLORS.PRIMARY,
+                    backgroundColor: BACKGROUNDS.BUTTON,
                     borderWidth: BORDERS.MAJOR,
                     borderColor: BORDER_COLORS.PRIMARY,
                     borderRadius: RADIUS.BUTTON,
@@ -603,7 +613,7 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
                   value={createName}
                   onChangeText={setCreateName}
                   placeholder="Name"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor="#8b8780"
                   autoFocus
                 />
                 <View className="flex-row gap-2">
@@ -621,7 +631,10 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-white text-center font-semibold">
+                    <Text
+                      className="text-center font-semibold"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
                       Cancel
                     </Text>
                   </TouchableOpacity>
@@ -666,13 +679,17 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
                   marginBottom: isLandscape ? 0 : insets.bottom,
                 }}
               >
-                <Text className="text-white text-lg font-semibold mb-4">
+                <Text
+                  className="text-lg font-semibold mb-4"
+                  style={{ color: TEXT_COLORS.PRIMARY }}
+                >
                   Rename Item
                 </Text>
                 <TextInput
-                  className="px-4 py-3 text-white mb-4"
+                  className="px-4 py-3 mb-4"
                   style={{
-                    backgroundColor: BACKGROUNDS.DARKER,
+                    color: TEXT_COLORS.PRIMARY,
+                    backgroundColor: BACKGROUNDS.BUTTON,
                     borderWidth: BORDERS.MAJOR,
                     borderColor: BORDER_COLORS.PRIMARY,
                     borderRadius: RADIUS.BUTTON,
@@ -680,7 +697,7 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
                   value={renameName}
                   onChangeText={setRenameName}
                   placeholder="New name"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor="#8b8780"
                   autoFocus
                 />
                 <View className="flex-row gap-2">
@@ -698,7 +715,10 @@ export const FileManager = forwardRef<FileManagerHandle, FileManagerProps>(
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text className="text-white text-center font-semibold">
+                    <Text
+                      className="text-center font-semibold"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
                       Cancel
                     </Text>
                   </TouchableOpacity>

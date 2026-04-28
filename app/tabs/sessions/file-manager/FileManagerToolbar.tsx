@@ -6,6 +6,7 @@ import {
   BORDER_COLORS,
   BACKGROUNDS,
   RADIUS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 
 interface FileManagerToolbarProps {
@@ -67,7 +68,7 @@ export function FileManagerToolbar({
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Text
             style={{
-              color: "#ffffff",
+              color: TEXT_COLORS.PRIMARY,
               fontWeight: "500",
               marginRight: 16,
               fontSize: isLandscape ? 12 : 14,
@@ -99,7 +100,11 @@ export function FileManagerToolbar({
             >
               <Copy
                 size={iconSize}
-                color={selectedCount === 0 ? "#4B5563" : "white"}
+                color={
+                  selectedCount === 0
+                    ? TEXT_COLORS.DISABLED
+                    : TEXT_COLORS.PRIMARY
+                }
               />
             </TouchableOpacity>
 
@@ -117,7 +122,11 @@ export function FileManagerToolbar({
             >
               <Scissors
                 size={iconSize}
-                color={selectedCount === 0 ? "#4B5563" : "white"}
+                color={
+                  selectedCount === 0
+                    ? TEXT_COLORS.DISABLED
+                    : TEXT_COLORS.PRIMARY
+                }
               />
             </TouchableOpacity>
 
@@ -135,7 +144,7 @@ export function FileManagerToolbar({
             >
               <Trash2
                 size={iconSize}
-                color={selectedCount === 0 ? "#4B5563" : "white"}
+                color={selectedCount === 0 ? TEXT_COLORS.DISABLED : "#dc2626"}
               />
             </TouchableOpacity>
 
@@ -151,7 +160,7 @@ export function FileManagerToolbar({
               }}
               activeOpacity={0.7}
             >
-              <X size={iconSize} color="white" />
+              <X size={iconSize} color={TEXT_COLORS.PRIMARY} />
             </TouchableOpacity>
           </View>
         </View>
@@ -159,7 +168,7 @@ export function FileManagerToolbar({
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <Text
             style={{
-              color: "#ffffff",
+              color: TEXT_COLORS.PRIMARY,
               fontWeight: "500",
               marginRight: 16,
               fontSize: isLandscape ? 12 : 14,
@@ -189,7 +198,7 @@ export function FileManagerToolbar({
               }}
               activeOpacity={0.7}
             >
-              <Clipboard size={iconSize} color="white" />
+              <Clipboard size={iconSize} color={TEXT_COLORS.PRIMARY} />
             </TouchableOpacity>
 
             {onCancelClipboard && (
@@ -204,7 +213,7 @@ export function FileManagerToolbar({
                 }}
                 activeOpacity={0.7}
               >
-                <X size={iconSize} color="white" />
+                <X size={iconSize} color={TEXT_COLORS.PRIMARY} />
               </TouchableOpacity>
             )}
           </View>

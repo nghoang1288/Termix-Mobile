@@ -12,7 +12,9 @@ import {
   getVersionInfo,
   initializeServerConfig,
   getLatestGitHubRelease,
+  getCookie,
   setAuthStateCallback,
+  clearAuth,
 } from "./main-axios";
 import { isOfflineModeEnabled, setOfflineModeEnabled } from "./offline-storage";
 import Constants from "expo-constants";
@@ -126,7 +128,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (serverConfig || legacyServer) {
           let authStatus = false;
 
-          const jwtToken = await AsyncStorage.getItem("jwt");
+          const jwtToken = await getCookie("jwt");
 
           if (jwtToken) {
             try {
@@ -143,7 +145,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
             } catch (e) {
               console.error("[AppContext] Auto-login failed:", e);
               authStatus = false;
-              await AsyncStorage.removeItem("jwt");
+              await clearAuth();
             }
           } else {
           }

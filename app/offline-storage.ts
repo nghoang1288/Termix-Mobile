@@ -1,5 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { SSHHost, SSHHostData } from "@/types";
+import {
+  deleteSecureItem,
+  getSecureItem,
+  setSecureItem,
+} from "@/app/secure-storage";
 
 const OFFLINE_MODE_KEY = "sshbridge.offlineMode";
 const OFFLINE_HOSTS_KEY = "sshbridge.offlineHosts";
@@ -9,6 +14,21 @@ const USERNAME_MAP_KEY = "sshbridge.rememberedUsernames";
 type SSHHostDataWithStringKey = SSHHostData & {
   key?: string | File | null;
 };
+
+type OfflineSecretField =
+  | "password"
+  | "key"
+  | "keyPassword"
+  | "sudoPassword"
+  | "socks5Password";
+
+const OFFLINE_SECRET_FIELDS: OfflineSecretField[] = [
+  "password",
+  "key",
+  "keyPassword",
+  "sudoPassword",
+  "socks5Password",
+];
 
 function normalizeServerKey(serverUrl?: string | null): string {
   return (serverUrl || "").trim().replace(/\/$/, "").toLowerCase();
@@ -26,6 +46,71 @@ function parseHosts(value: string | null): SSHHost[] {
   } catch {
     return [];
   }
+}
+
+function offlineSecretKey(hostId: number, field: OfflineSecretField) {
+  return `sshbridge.offlineHost.${hostId}.${field}`;
+}
+
+function getHostSecret(host: SSHHost, field: OfflineSecretField) {
+  const value = host[field as keyof SSHHost];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function stripHostSecrets(host: SSHHost): SSHHost {
+  const sanitized = { ...host } as Record<string, unknown>;
+  OFFLINE_SECRET_FIELDS.forEach((field) => {
+    delete sanitized[field];
+  });
+  return sanitized as unknown as SSHHost;
+}
+
+function hasInlineSecrets(host: SSHHost) {
+  return OFFLINE_SECRET_FIELDS.some((field) =>
+    Boolean(getHostSecret(host, field)),
+  );
+}
+
+async function persistHostSecrets(hosts: SSHHost[]) {
+  await Promise.all(
+    hosts.flatMap((host) =>
+      OFFLINE_SECRET_FIELDS.map((field) =>
+        setSecureItem(
+          offlineSecretKey(host.id, field),
+          getHostSecret(host, field),
+        ),
+      ),
+    ),
+  );
+}
+
+async function hydrateHostSecrets(host: SSHHost) {
+  const hydrated = { ...host } as Record<string, unknown>;
+
+  await Promise.all(
+    OFFLINE_SECRET_FIELDS.map(async (field) => {
+      const secureValue = await getSecureItem(offlineSecretKey(host.id, field));
+      const inlineValue = getHostSecret(host, field);
+      const value = secureValue || inlineValue;
+
+      if (value) {
+        hydrated[field] = value;
+        if (!secureValue) {
+          await setSecureItem(offlineSecretKey(host.id, field), value);
+        }
+      }
+    }),
+  );
+
+  return hydrated as unknown as SSHHost;
+}
+
+async function deleteHostSecrets(hostId: number) {
+  await Promise.all(
+    OFFLINE_SECRET_FIELDS.map((field) =>
+      deleteSecureItem(offlineSecretKey(hostId, field)),
+    ),
+  );
 }
 
 function normalizeHostData(
@@ -130,11 +215,23 @@ export async function setOfflineModeEnabled(enabled: boolean): Promise<void> {
 }
 
 export async function getOfflineHosts(): Promise<SSHHost[]> {
-  return parseHosts(await AsyncStorage.getItem(OFFLINE_HOSTS_KEY));
+  const hosts = parseHosts(await AsyncStorage.getItem(OFFLINE_HOSTS_KEY));
+  const hadInlineSecrets = hosts.some(hasInlineSecrets);
+  const hydratedHosts = await Promise.all(hosts.map(hydrateHostSecrets));
+
+  if (hadInlineSecrets) {
+    await saveOfflineHosts(hydratedHosts);
+  }
+
+  return hydratedHosts;
 }
 
 export async function saveOfflineHosts(hosts: SSHHost[]): Promise<void> {
-  await AsyncStorage.setItem(OFFLINE_HOSTS_KEY, JSON.stringify(hosts));
+  await persistHostSecrets(hosts);
+  await AsyncStorage.setItem(
+    OFFLINE_HOSTS_KEY,
+    JSON.stringify(hosts.map(stripHostSecrets)),
+  );
 }
 
 export async function cacheOnlineHosts(hosts: SSHHost[]): Promise<void> {
@@ -183,6 +280,7 @@ export async function updateOfflineHost(
 
 export async function deleteOfflineHost(hostId: number): Promise<void> {
   const hosts = await getOfflineHosts();
+  await deleteHostSecrets(hostId);
   await saveOfflineHosts(hosts.filter((host) => host.id !== hostId));
 }
 

@@ -18,6 +18,25 @@ type ServerDetails = {
   ip: string;
 };
 
+function normalizeServerUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error("Please enter a server address");
+  }
+
+  const withScheme = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  const parsed = new URL(withScheme);
+
+  if (!parsed.hostname || !["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Server address must be a valid HTTP or HTTPS URL");
+  }
+
+  parsed.hash = "";
+  return parsed.toString().replace(/\/$/, "");
+}
+
 export default function ServerForm() {
   const {
     setShowServerManager,
@@ -28,6 +47,7 @@ export default function ServerForm() {
   const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState<ServerDetails>({ ip: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const isHttpServer = /^http:\/\//i.test(formData.ip.trim());
 
   useEffect(() => {
     const loadExistingConfig = async () => {
@@ -48,16 +68,15 @@ export default function ServerForm() {
   };
 
   const handleConnect = async () => {
-    const serverUrl = formData.ip.trim();
-    if (!serverUrl) {
-      Alert.alert("Error", "Please enter a server address");
-      return;
-    }
+    let serverUrl: string;
 
-    if (!/^https?:\/\//.test(serverUrl)) {
+    try {
+      serverUrl = normalizeServerUrl(formData.ip);
+      setFormData({ ip: serverUrl });
+    } catch (error) {
       Alert.alert(
         "Error",
-        "Server address must start with http:// or https://",
+        error instanceof Error ? error.message : "Invalid server address",
       );
       return;
     }
@@ -122,7 +141,7 @@ export default function ServerForm() {
                     paddingLeft: 48,
                     paddingRight: 16,
                   }}
-                  placeholder="http://127.0.0.1:8080"
+                  placeholder="https://sshbridge.example.com"
                   placeholderTextColor="#8b8780"
                   value={formData.ip}
                   onChangeText={(value) => handleInputChange("ip", value)}
@@ -135,6 +154,11 @@ export default function ServerForm() {
               <Text className="mt-2 text-xs text-[#5f5f5d]">
                 Enter the address of your self-hosted SSHBridge server.
               </Text>
+              {isHttpServer ? (
+                <Text className="mt-2 text-xs font-medium text-[#b45309]">
+                  HTTP is plaintext. Use HTTPS outside a trusted local network.
+                </Text>
+              ) : null}
             </View>
 
             <TouchableOpacity

@@ -18,6 +18,13 @@ import {
   PackageOpen,
   X,
 } from "lucide-react-native";
+import {
+  BACKGROUNDS,
+  BORDERS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 
 interface ContextMenuProps {
   visible: boolean;
@@ -70,19 +77,35 @@ export function ContextMenu({
       <TouchableWithoutFeedback onPress={onClose}>
         <View className="flex-1 bg-black/50 justify-end">
           <TouchableWithoutFeedback onPress={() => {}}>
-            <View className="bg-dark-bg-button rounded-t-2xl border-t-2 border-x-2 border-dark-border px-4 pt-4 pb-6">
+            <View
+              className="rounded-t-2xl px-4 pb-6 pt-4"
+              style={{
+                backgroundColor: BACKGROUNDS.CARD,
+                borderTopWidth: BORDERS.MAJOR,
+                borderLeftWidth: BORDERS.MAJOR,
+                borderRightWidth: BORDERS.MAJOR,
+                borderColor: BORDER_COLORS.PRIMARY,
+              }}
+            >
               <View className="flex-row items-center justify-between mb-3">
                 <Text
-                  className="text-white font-semibold text-base"
+                  className="font-semibold text-base"
+                  style={{ color: TEXT_COLORS.PRIMARY }}
                   numberOfLines={1}
                 >
                   {fileName}
                 </Text>
                 <TouchableOpacity
-                  className="bg-dark-bg rounded-md p-1 border-2 border-dark-border"
+                  className="p-1"
+                  style={{
+                    backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                    borderRadius: RADIUS.SMALL,
+                    borderWidth: BORDERS.STANDARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                  }}
                   onPress={onClose}
                 >
-                  <X size={16} color="white" />
+                  <X size={16} color={TEXT_COLORS.PRIMARY} />
                 </TouchableOpacity>
               </View>
 
@@ -90,103 +113,210 @@ export function ContextMenu({
                 {onView && fileType === "file" && (
                   <TouchableOpacity
                     onPress={() => handleAction(onView)}
-                    className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                    className="flex-row items-center gap-3 p-3"
+                    style={{
+                      backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: BORDERS.STANDARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                    }}
                     activeOpacity={0.7}
                   >
-                    <Eye size={20} color="white" />
-                    <Text className="text-white font-medium">View</Text>
+                    <Eye size={20} color={TEXT_COLORS.PRIMARY} />
+                    <Text
+                      className="font-medium"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
+                      View
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 {onEdit && fileType === "file" && (
                   <TouchableOpacity
                     onPress={() => handleAction(onEdit)}
-                    className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                    className="flex-row items-center gap-3 p-3"
+                    style={{
+                      backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: BORDERS.STANDARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                    }}
                     activeOpacity={0.7}
                   >
-                    <Edit size={20} color="white" />
-                    <Text className="text-white font-medium">Edit</Text>
+                    <Edit size={20} color={TEXT_COLORS.PRIMARY} />
+                    <Text
+                      className="font-medium"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
+                      Edit
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 <TouchableOpacity
                   onPress={() => handleAction(onRename)}
-                  className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                  className="flex-row items-center gap-3 p-3"
+                  style={{
+                    backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                    borderRadius: RADIUS.BUTTON,
+                    borderWidth: BORDERS.STANDARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                  }}
                   activeOpacity={0.7}
                 >
-                  <FileText size={20} color="white" />
-                  <Text className="text-white font-medium">Rename</Text>
+                  <FileText size={20} color={TEXT_COLORS.PRIMARY} />
+                  <Text
+                    className="font-medium"
+                    style={{ color: TEXT_COLORS.PRIMARY }}
+                  >
+                    Rename
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={() => handleAction(onCopy)}
-                  className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                  className="flex-row items-center gap-3 p-3"
+                  style={{
+                    backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                    borderRadius: RADIUS.BUTTON,
+                    borderWidth: BORDERS.STANDARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                  }}
                   activeOpacity={0.7}
                 >
-                  <Copy size={20} color="white" />
-                  <Text className="text-white font-medium">Copy</Text>
+                  <Copy size={20} color={TEXT_COLORS.PRIMARY} />
+                  <Text
+                    className="font-medium"
+                    style={{ color: TEXT_COLORS.PRIMARY }}
+                  >
+                    Copy
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={() => handleAction(onCut)}
-                  className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                  className="flex-row items-center gap-3 p-3"
+                  style={{
+                    backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                    borderRadius: RADIUS.BUTTON,
+                    borderWidth: BORDERS.STANDARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                  }}
                   activeOpacity={0.7}
                 >
-                  <Scissors size={20} color="white" />
-                  <Text className="text-white font-medium">Cut</Text>
+                  <Scissors size={20} color={TEXT_COLORS.PRIMARY} />
+                  <Text
+                    className="font-medium"
+                    style={{ color: TEXT_COLORS.PRIMARY }}
+                  >
+                    Cut
+                  </Text>
                 </TouchableOpacity>
 
                 {onDownload && fileType === "file" && (
                   <TouchableOpacity
                     onPress={() => handleAction(onDownload)}
-                    className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                    className="flex-row items-center gap-3 p-3"
+                    style={{
+                      backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: BORDERS.STANDARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                    }}
                     activeOpacity={0.7}
                   >
-                    <Download size={20} color="white" />
-                    <Text className="text-white font-medium">Download</Text>
+                    <Download size={20} color={TEXT_COLORS.PRIMARY} />
+                    <Text
+                      className="font-medium"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
+                      Download
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 {onPermissions && (
                   <TouchableOpacity
                     onPress={() => handleAction(onPermissions)}
-                    className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                    className="flex-row items-center gap-3 p-3"
+                    style={{
+                      backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: BORDERS.STANDARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                    }}
                     activeOpacity={0.7}
                   >
-                    <Lock size={20} color="white" />
-                    <Text className="text-white font-medium">Permissions</Text>
+                    <Lock size={20} color={TEXT_COLORS.PRIMARY} />
+                    <Text
+                      className="font-medium"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
+                      Permissions
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 {onCompress && (
                   <TouchableOpacity
                     onPress={() => handleAction(onCompress)}
-                    className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                    className="flex-row items-center gap-3 p-3"
+                    style={{
+                      backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: BORDERS.STANDARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                    }}
                     activeOpacity={0.7}
                   >
-                    <Archive size={20} color="white" />
-                    <Text className="text-white font-medium">Compress</Text>
+                    <Archive size={20} color={TEXT_COLORS.PRIMARY} />
+                    <Text
+                      className="font-medium"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
+                      Compress
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 {onExtract && isArchive && (
                   <TouchableOpacity
                     onPress={() => handleAction(onExtract)}
-                    className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                    className="flex-row items-center gap-3 p-3"
+                    style={{
+                      backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                      borderRadius: RADIUS.BUTTON,
+                      borderWidth: BORDERS.STANDARD,
+                      borderColor: BORDER_COLORS.BUTTON,
+                    }}
                     activeOpacity={0.7}
                   >
-                    <PackageOpen size={20} color="white" />
-                    <Text className="text-white font-medium">Extract</Text>
+                    <PackageOpen size={20} color={TEXT_COLORS.PRIMARY} />
+                    <Text
+                      className="font-medium"
+                      style={{ color: TEXT_COLORS.PRIMARY }}
+                    >
+                      Extract
+                    </Text>
                   </TouchableOpacity>
                 )}
 
                 <TouchableOpacity
                   onPress={() => handleAction(onDelete)}
-                  className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
+                  className="flex-row items-center gap-3 p-3"
+                  style={{
+                    backgroundColor: "rgba(239,68,68,0.08)",
+                    borderRadius: RADIUS.BUTTON,
+                    borderWidth: BORDERS.STANDARD,
+                    borderColor: "rgba(239,68,68,0.25)",
+                  }}
                   activeOpacity={0.7}
                 >
-                  <Trash2 size={20} color="white" />
-                  <Text className="text-white font-medium">Delete</Text>
+                  <Trash2 size={20} color="#dc2626" />
+                  <Text className="font-medium" style={{ color: "#dc2626" }}>
+                    Delete
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

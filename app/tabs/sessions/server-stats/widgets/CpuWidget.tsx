@@ -7,6 +7,7 @@ import {
   BORDER_COLORS,
   RADIUS,
   BACKGROUNDS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 
 interface WidgetProps {
@@ -24,7 +25,7 @@ export const CpuWidget: React.FC<WidgetProps> = ({ metrics, isLoading }) => {
       style={[
         styles.widgetCard,
         {
-          backgroundColor: BACKGROUNDS.DARKER,
+          backgroundColor: BACKGROUNDS.CARD,
           borderWidth: BORDERS.STANDARD,
           borderColor: BORDER_COLORS.PANEL,
           borderRadius: RADIUS.LARGE,
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    color: "#ffffff",
+    color: TEXT_COLORS.PRIMARY,
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subtitle: {
-    color: "#9CA3AF",
+    color: TEXT_COLORS.TERTIARY,
     fontSize: 14,
   },
   loadRow: {
@@ -108,12 +109,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadValue: {
-    color: "#ffffff",
+    color: TEXT_COLORS.PRIMARY,
     fontSize: 16,
     fontWeight: "600",
   },
   loadLabel: {
-    color: "#9CA3AF",
+    color: TEXT_COLORS.TERTIARY,
     fontSize: 12,
     marginTop: 2,
   },
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    backgroundColor: "rgba(252,251,248,0.78)",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,

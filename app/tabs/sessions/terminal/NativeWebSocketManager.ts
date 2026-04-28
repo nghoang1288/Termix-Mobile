@@ -69,6 +69,7 @@ export class NativeWebSocketManager {
   private cols = 80;
   private rows = 24;
   private wsUrl: string | null = null;
+  private wsAuthHeaders: Record<string, string> | null = null;
   private serverSessionId: string | null = null;
   private pendingReattach = false;
   private releaseKeepAlive: (() => void) | null = null;
@@ -102,7 +103,11 @@ export class NativeWebSocketManager {
     const wsProtocol = serverUrl.startsWith("https://") ? "wss://" : "ws://";
     const wsHost = serverUrl.replace(/^https?:\/\//, "");
     const cleanHost = wsHost.replace(/\/$/, "");
-    this.wsUrl = `${wsProtocol}${cleanHost}/ssh/websocket/?token=${encodeURIComponent(jwtToken)}`;
+    this.wsUrl = `${wsProtocol}${cleanHost}/ssh/websocket/`;
+    this.wsAuthHeaders = {
+      Authorization: `Bearer ${jwtToken}`,
+      Cookie: `jwt=${encodeURIComponent(jwtToken)}`,
+    };
 
     this.connectWebSocket();
   }
@@ -117,6 +122,8 @@ export class NativeWebSocketManager {
       } catch {}
     }
     this.serverSessionId = null;
+    this.wsUrl = null;
+    this.wsAuthHeaders = null;
     this.clearAllTimers();
     if (this.ws) {
       try {
@@ -288,7 +295,14 @@ export class NativeWebSocketManager {
       retryCount: this.reconnectAttempts,
     });
 
-    const ws = new WebSocket(this.wsUrl);
+    const WebSocketWithOptions = WebSocket as unknown as new (
+      url: string,
+      protocols?: string | string[],
+      options?: { headers?: Record<string, string> },
+    ) => WebSocket;
+    const ws = new WebSocketWithOptions(this.wsUrl, undefined, {
+      headers: this.wsAuthHeaders || undefined,
+    });
     this.ws = ws;
 
     this.connectionTimeout = setTimeout(() => {

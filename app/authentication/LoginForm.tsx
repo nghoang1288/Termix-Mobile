@@ -44,7 +44,7 @@ function normalizeServerUrl(value: string): string {
 
   const withScheme = /^https?:\/\//i.test(trimmed)
     ? trimmed
-    : `http://${trimmed}`;
+    : `https://${trimmed}`;
   const parsed = new URL(withScheme);
 
   if (!parsed.hostname || !["http:", "https:"].includes(parsed.protocol)) {
@@ -79,6 +79,7 @@ export default function LoginForm() {
   const [pendingTotpToken, setPendingTotpToken] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const isHttpServer = /^http:\/\//i.test(serverAddress.trim());
 
   useEffect(() => {
     let mounted = true;
@@ -283,7 +284,7 @@ export default function LoginForm() {
               <TextInput
                 className="rounded-xl border border-[#eceae4] bg-[#f7f4ed] text-[#1c1c1c]"
                 style={{ height: 56, paddingLeft: 48, paddingRight: 16 }}
-                placeholder="http://192.168.1.10:30001"
+                placeholder="https://sshbridge.example.com"
                 placeholderTextColor="#8b8780"
                 value={serverAddress}
                 onChangeText={(value) => {
@@ -298,6 +299,11 @@ export default function LoginForm() {
                 returnKeyType="next"
               />
             </View>
+            {isHttpServer ? (
+              <Text className="mt-2 text-xs font-medium text-[#b45309]">
+                HTTP is plaintext. Use HTTPS outside a trusted local network.
+              </Text>
+            ) : null}
           </View>
 
           <View className="mb-4">

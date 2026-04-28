@@ -1,7 +1,7 @@
-import { ScrollView, RefreshControl, View, Text } from "react-native";
+import { ScrollView, RefreshControl, Text } from "react-native";
 import { FileItem } from "./FileItem";
 import { sortFiles } from "./utils/fileUtils";
-import { getColumnCount } from "@/app/utils/responsive";
+import { BACKGROUNDS, TEXT_COLORS } from "@/app/constants/designTokens";
 
 interface FileListItem {
   name: string;
@@ -48,24 +48,28 @@ export function FileList({
   if (!isLoading && files.length === 0) {
     return (
       <ScrollView
-        className="flex-1 bg-dark-bg"
+        className="flex-1"
+        style={{ backgroundColor: BACKGROUNDS.DARK }}
         contentContainerClassName="flex-1 items-center justify-center"
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
             onRefresh={onRefresh}
-            tintColor="#9CA3AF"
+            tintColor={TEXT_COLORS.TERTIARY}
           />
         }
       >
-        <Text className="text-gray-400 text-center">This folder is empty</Text>
+        <Text className="text-center" style={{ color: TEXT_COLORS.TERTIARY }}>
+          This folder is empty
+        </Text>
       </ScrollView>
     );
   }
 
   return (
     <ScrollView
-      className="flex-1 bg-dark-bg"
+      className="flex-1"
+      style={{ backgroundColor: BACKGROUNDS.DARK }}
       contentContainerStyle={{
         paddingBottom: toolbarHeight > 0 ? toolbarHeight + 12 : 12,
       }}
@@ -73,7 +77,7 @@ export function FileList({
         <RefreshControl
           refreshing={isLoading}
           onRefresh={onRefresh}
-          tintColor="#9CA3AF"
+          tintColor={TEXT_COLORS.TERTIARY}
         />
       }
     >

@@ -26,6 +26,7 @@ import {
   BACKGROUNDS,
   BORDER_COLORS,
   RADIUS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 
 interface ServerStatsProps {
@@ -173,7 +174,13 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
             }}
           >
             {icon}
-            <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "600" }}>
+            <Text
+              style={{
+                color: TEXT_COLORS.PRIMARY,
+                fontSize: 16,
+                fontWeight: "600",
+              }}
+            >
               {title}
             </Text>
           </View>
@@ -189,7 +196,9 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
             <Text style={{ color, fontSize: 32, fontWeight: "700" }}>
               {value}
             </Text>
-            <Text style={{ color: "#9CA3AF", fontSize: 12 }}>{subtitle}</Text>
+            <Text style={{ color: TEXT_COLORS.TERTIARY, fontSize: 12 }}>
+              {subtitle}
+            </Text>
           </View>
         </View>
       );
@@ -214,13 +223,13 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
               flex: 1,
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: BACKGROUNDS.DARKEST,
+              backgroundColor: BACKGROUNDS.DARK,
             }}
           >
             <ActivityIndicator size="large" color="#22C55E" />
             <Text
               style={{
-                color: "#9CA3AF",
+                color: TEXT_COLORS.TERTIARY,
                 fontSize: 14,
                 marginTop: 16,
               }}
@@ -234,14 +243,14 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
               flex: 1,
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: BACKGROUNDS.DARKEST,
+              backgroundColor: BACKGROUNDS.DARK,
               paddingHorizontal: 24,
             }}
           >
             <Server size={48} color="#EF4444" />
             <Text
               style={{
-                color: "#ffffff",
+                color: TEXT_COLORS.PRIMARY,
                 fontSize: 18,
                 fontWeight: "600",
                 marginTop: 16,
@@ -252,7 +261,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
             </Text>
             <Text
               style={{
-                color: "#9CA3AF",
+                color: TEXT_COLORS.TERTIARY,
                 fontSize: 14,
                 marginTop: 8,
                 textAlign: "center",
@@ -298,11 +307,21 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
           >
             <View style={{ marginBottom: 12 }}>
               <Text
-                style={{ color: "#ffffff", fontSize: 24, fontWeight: "700" }}
+                style={{
+                  color: TEXT_COLORS.PRIMARY,
+                  fontSize: 24,
+                  fontWeight: "700",
+                }}
               >
                 {hostConfig.name}
               </Text>
-              <Text style={{ color: "#9CA3AF", fontSize: 14, marginTop: 4 }}>
+              <Text
+                style={{
+                  color: TEXT_COLORS.TERTIARY,
+                  fontSize: 14,
+                  marginTop: 4,
+                }}
+              >
                 Server Statistics
               </Text>
             </View>
@@ -311,7 +330,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
               <View style={{ marginBottom: 16 }}>
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color: TEXT_COLORS.PRIMARY,
                     fontSize: 18,
                     fontWeight: "600",
                     marginBottom: 12,
@@ -394,7 +413,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
                   <Cpu size={20} color="#60A5FA" />
                   <Text
                     style={{
-                      color: "#ffffff",
+                      color: TEXT_COLORS.PRIMARY,
                       fontSize: 16,
                       fontWeight: "600",
                     }}
@@ -422,7 +441,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
                       ? `${metrics.cpu.percent}%`
                       : "N/A"}
                   </Text>
-                  <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
+                  <Text style={{ color: TEXT_COLORS.TERTIARY, fontSize: 12 }}>
                     {typeof metrics?.cpu?.cores === "number"
                       ? `${metrics.cpu.cores} cores`
                       : "N/A"}
@@ -439,7 +458,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
                   >
                     <Text
                       style={{
-                        color: "#9CA3AF",
+                        color: TEXT_COLORS.TERTIARY,
                         fontSize: 12,
                         marginBottom: 8,
                       }}
@@ -459,7 +478,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
                         </Text>
                         <Text
                           style={{
-                            color: "#6B7280",
+                            color: TEXT_COLORS.TERTIARY,
                             fontSize: 11,
                             marginTop: 2,
                           }}
@@ -479,7 +498,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
                         </Text>
                         <Text
                           style={{
-                            color: "#6B7280",
+                            color: TEXT_COLORS.TERTIARY,
                             fontSize: 11,
                             marginTop: 2,
                           }}
@@ -499,7 +518,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
                         </Text>
                         <Text
                           style={{
-                            color: "#6B7280",
+                            color: TEXT_COLORS.TERTIARY,
                             fontSize: 11,
                             marginTop: 2,
                           }}

@@ -14,6 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X, Save, RotateCcw } from "lucide-react-native";
 import { showToast } from "@/app/utils/toast";
 import { useOrientation } from "@/app/utils/orientation";
+import {
+  BACKGROUNDS,
+  BORDERS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 
 interface FileViewerProps {
   visible: boolean;
@@ -126,13 +133,15 @@ export function FileViewer({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1, backgroundColor: "#18181b" }}
+        style={{ flex: 1, backgroundColor: BACKGROUNDS.DARK }}
         keyboardVerticalOffset={0}
       >
-        <View className="flex-1 bg-dark-bg">
+        <View className="flex-1" style={{ backgroundColor: BACKGROUNDS.DARK }}>
           <View
-            className="bg-dark-bg-header border-b-2 border-dark-border"
             style={{
+              backgroundColor: BACKGROUNDS.HEADER,
+              borderBottomWidth: BORDERS.MAJOR,
+              borderBottomColor: BORDER_COLORS.PRIMARY,
               paddingTop: isLandscape
                 ? Math.max(insets.top, 8)
                 : insets.top + 12,
@@ -144,13 +153,15 @@ export function FileViewer({
             <View className="flex-row items-center justify-between">
               <View className="flex-1 mr-4">
                 <Text
-                  className="text-white font-semibold text-base"
+                  className="font-semibold text-base"
+                  style={{ color: TEXT_COLORS.PRIMARY }}
                   numberOfLines={1}
                 >
                   {fileName}
                 </Text>
                 <Text
-                  className="text-gray-400 text-xs mt-0.5"
+                  className="text-xs mt-0.5"
+                  style={{ color: TEXT_COLORS.TERTIARY }}
                   numberOfLines={1}
                 >
                   {filePath}
@@ -162,15 +173,21 @@ export function FileViewer({
                   <>
                     <TouchableOpacity
                       onPress={handleRevert}
-                      className="p-2 bg-dark-bg-button rounded border border-dark-border"
+                      className="p-2"
+                      style={{
+                        backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                        borderRadius: RADIUS.SMALL,
+                        borderWidth: BORDERS.STANDARD,
+                        borderColor: BORDER_COLORS.BUTTON,
+                      }}
                       activeOpacity={0.7}
                     >
-                      <RotateCcw size={18} color="white" />
+                      <RotateCcw size={18} color={TEXT_COLORS.PRIMARY} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       onPress={handleSave}
-                      className="p-2 bg-dark-bg-button rounded border border-dark-border"
+                      className="p-2"
                       activeOpacity={0.7}
                       disabled={isSaving}
                       style={{
@@ -178,12 +195,19 @@ export function FileViewer({
                         height: 34,
                         alignItems: "center",
                         justifyContent: "center",
+                        backgroundColor: BACKGROUNDS.ACTIVE,
+                        borderRadius: RADIUS.SMALL,
+                        borderWidth: BORDERS.STANDARD,
+                        borderColor: BORDER_COLORS.ACTIVE,
                       }}
                     >
                       {isSaving ? (
-                        <ActivityIndicator size="small" color="white" />
+                        <ActivityIndicator
+                          size="small"
+                          color={BACKGROUNDS.CARD}
+                        />
                       ) : (
-                        <Save size={18} color="white" />
+                        <Save size={18} color={BACKGROUNDS.CARD} />
                       )}
                     </TouchableOpacity>
                   </>
@@ -191,23 +215,42 @@ export function FileViewer({
 
                 <TouchableOpacity
                   onPress={handleClose}
-                  className="p-2 bg-dark-bg-button rounded border border-dark-border"
+                  className="p-2"
+                  style={{
+                    backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                    borderRadius: RADIUS.SMALL,
+                    borderWidth: BORDERS.STANDARD,
+                    borderColor: BORDER_COLORS.BUTTON,
+                  }}
                   activeOpacity={0.7}
                 >
-                  <X size={18} color="white" />
+                  <X size={18} color={TEXT_COLORS.PRIMARY} />
                 </TouchableOpacity>
               </View>
             </View>
 
             {readOnly && (
-              <View className="mt-2 px-2 py-1 bg-gray-800 border border-gray-700 rounded">
-                <Text className="text-gray-400 text-xs">Read-only mode</Text>
+              <View
+                className="mt-2 px-2 py-1"
+                style={{
+                  backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                  borderWidth: BORDERS.STANDARD,
+                  borderColor: BORDER_COLORS.BUTTON,
+                  borderRadius: RADIUS.SMALL,
+                }}
+              >
+                <Text
+                  className="text-xs"
+                  style={{ color: TEXT_COLORS.TERTIARY }}
+                >
+                  Read-only mode
+                </Text>
               </View>
             )}
           </View>
 
           <TextInput
-            className="flex-1 text-white bg-dark-bg"
+            className="flex-1"
             value={content}
             onChangeText={handleContentChange}
             multiline
@@ -216,6 +259,8 @@ export function FileViewer({
             style={{
               fontFamily: MONOSPACE_FONT,
               fontSize: 14,
+              color: TEXT_COLORS.PRIMARY,
+              backgroundColor: BACKGROUNDS.CARD,
               paddingTop: 16,
               paddingBottom: Math.max(insets.bottom, 16),
               paddingLeft: Math.max(insets.left, 16),
@@ -223,7 +268,7 @@ export function FileViewer({
               textAlignVertical: "top",
             }}
             placeholder={readOnly ? "File content..." : "Enter file content..."}
-            placeholderTextColor="#6B7280"
+            placeholderTextColor="#8b8780"
           />
         </View>
       </KeyboardAvoidingView>

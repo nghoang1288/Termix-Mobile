@@ -1,5 +1,10 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import { File, Folder, Link } from "lucide-react-native";
+import { Check, File, Folder, Link } from "lucide-react-native";
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 import {
   formatFileSize,
   formatDate,
@@ -30,8 +35,6 @@ export function FileItem({
   onLongPress,
   onSelectToggle,
   selectionMode = false,
-  columnCount = 1,
-  useGrid = false,
 }: FileItemProps) {
   const iconColor = getFileIconColor(name, type);
   const IconComponent =
@@ -41,9 +44,9 @@ export function FileItem({
     <TouchableOpacity
       style={{
         width: "100%",
-        backgroundColor: isSelected ? "#27272a" : "#18181b",
+        backgroundColor: isSelected ? "rgba(28,28,28,0.08)" : BACKGROUNDS.CARD,
         borderBottomWidth: 1,
-        borderBottomColor: "#303032",
+        borderBottomColor: BORDER_COLORS.SECONDARY,
         padding: 12,
         flexDirection: "row",
         alignItems: "center",
@@ -55,15 +58,17 @@ export function FileItem({
       {selectionMode && (
         <View className="mr-3">
           <View
-            className={`w-6 h-6 rounded border-2 items-center justify-center ${
-              isSelected
-                ? "bg-blue-500 border-blue-600"
-                : "bg-dark-bg border-dark-border-light"
-            }`}
+            className="h-6 w-6 items-center justify-center rounded border-2"
+            style={{
+              backgroundColor: isSelected
+                ? BACKGROUNDS.ACTIVE
+                : BACKGROUNDS.CARD,
+              borderColor: isSelected
+                ? BORDER_COLORS.ACTIVE
+                : BORDER_COLORS.BUTTON,
+            }}
           >
-            {isSelected && (
-              <Text className="text-white text-xs font-bold">✓</Text>
-            )}
+            {isSelected && <Check size={14} color="#fcfbf8" strokeWidth={3} />}
           </View>
         </View>
       )}
@@ -73,25 +78,42 @@ export function FileItem({
       </View>
 
       <View className="flex-1">
-        <Text className="text-white font-medium" numberOfLines={1}>
+        <Text
+          className="font-medium"
+          numberOfLines={1}
+          style={{ color: TEXT_COLORS.PRIMARY }}
+        >
           {name}
         </Text>
-        <View className="flex-row items-center mt-0.5">
+        <View className="mt-0.5 flex-row items-center">
           {type === "directory" ? (
-            <Text className="text-gray-400 text-xs">Folder</Text>
+            <Text className="text-xs" style={{ color: TEXT_COLORS.TERTIARY }}>
+              Folder
+            </Text>
           ) : (
             <>
               {size !== undefined && (
-                <Text className="text-gray-400 text-xs">
+                <Text
+                  className="text-xs"
+                  style={{ color: TEXT_COLORS.TERTIARY }}
+                >
                   {formatFileSize(size)}
                 </Text>
               )}
               {modified && (
                 <>
                   {size !== undefined && (
-                    <Text className="text-gray-500 text-xs mx-1">•</Text>
+                    <Text
+                      className="mx-1 text-xs"
+                      style={{ color: TEXT_COLORS.DISABLED }}
+                    >
+                      |
+                    </Text>
                   )}
-                  <Text className="text-gray-400 text-xs">
+                  <Text
+                    className="text-xs"
+                    style={{ color: TEXT_COLORS.TERTIARY }}
+                  >
                     {formatDate(modified)}
                   </Text>
                 </>
