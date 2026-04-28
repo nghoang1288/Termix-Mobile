@@ -91,6 +91,7 @@ const TERMINAL_TOP_PADDING = 4;
 const TERMINAL_BOTTOM_PADDING = 16;
 const AUTOCOMPLETE_ROW_HEIGHT = 22;
 const AUTOCOMPLETE_VERTICAL_GAP = 8;
+const AUTOCOMPLETE_MAX_VISIBLE_SUGGESTIONS = 3;
 
 const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
   (
@@ -316,14 +317,10 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     }, []);
 
     useEffect(() => {
-      if (showAutocomplete && autocompleteSuggestions.length > 0) {
+      if (showAutocomplete) {
         scrollToTerminalBottom(false);
       }
-    }, [
-      autocompleteSuggestions.length,
-      scrollToTerminalBottom,
-      showAutocomplete,
-    ]);
+    }, [scrollToTerminalBottom, showAutocomplete]);
 
     useEffect(() => {
       const nextSize = estimateTerminalSize(
@@ -841,7 +838,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       connectionState === "reconnecting" ? "Reconnecting..." : "Connecting...";
     const autocompleteBottomPadding =
       showAutocomplete && autocompleteSuggestions.length > 0
-        ? getAutocompleteVerticalSpace(autocompleteSuggestions.length)
+        ? getAutocompleteVerticalSpace()
         : TERMINAL_BOTTOM_PADDING;
     const autocompleteAnchor = getAutocompleteAnchor({
       command: commandInputRef.current,
@@ -1198,9 +1195,9 @@ function estimateTerminalSize(
   };
 }
 
-function getAutocompleteVerticalSpace(suggestionCount: number) {
+function getAutocompleteVerticalSpace() {
   return (
-    Math.min(3, Math.max(1, suggestionCount)) * AUTOCOMPLETE_ROW_HEIGHT +
+    AUTOCOMPLETE_MAX_VISIBLE_SUGGESTIONS * AUTOCOMPLETE_ROW_HEIGHT +
     AUTOCOMPLETE_VERTICAL_GAP +
     TERMINAL_BOTTOM_PADDING
   );
@@ -1229,10 +1226,13 @@ function getAutocompleteAnchor({
   const height = Math.max(1, viewport.height);
   const charWidth = Math.max(6, fontSize * 0.6);
   const popupHeight =
-    Math.min(3, Math.max(1, suggestionCount)) * AUTOCOMPLETE_ROW_HEIGHT + 2;
-  const spacerRows = Math.ceil(
-    getAutocompleteVerticalSpace(suggestionCount) / lineHeight,
-  );
+    Math.min(
+      AUTOCOMPLETE_MAX_VISIBLE_SUGGESTIONS,
+      Math.max(1, suggestionCount),
+    ) *
+      AUTOCOMPLETE_ROW_HEIGHT +
+    2;
+  const spacerRows = Math.ceil(getAutocompleteVerticalSpace() / lineHeight);
   const visibleRows = Math.max(
     1,
     Math.floor(
