@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   CommandAutocompleteSource,
   CommandAutocompleteSuggestion,
@@ -34,60 +34,37 @@ export default function CommandAutocomplete({
   return (
     <View pointerEvents="box-none" style={styles.container}>
       <View style={styles.card}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={styles.list}
-        >
-          {visibleSuggestions.map((suggestion, index) => {
-            const isSelected = index === selectedIndex;
+        {visibleSuggestions.map((suggestion, index) => {
+          const isSelected = index === selectedIndex;
 
-            return (
-              <Pressable
-                key={`${suggestion.source}-${suggestion.value}-${index}`}
-                onPress={() => onSelect(suggestion)}
+          return (
+            <Pressable
+              key={`${suggestion.source}-${suggestion.value}-${index}`}
+              onPress={() => onSelect(suggestion)}
+              style={[styles.row, isSelected ? styles.selectedRow : undefined]}
+            >
+              <Text numberOfLines={1} style={styles.commandText}>
+                {suggestion.value}
+              </Text>
+
+              <View
                 style={[
-                  styles.row,
-                  isSelected ? styles.selectedRow : undefined,
+                  styles.badge,
+                  { borderColor: SOURCE_COLOR[suggestion.source] },
                 ]}
               >
-                <View style={styles.commandBlock}>
-                  <Text numberOfLines={1} style={styles.commandText}>
-                    {suggestion.value}
-                  </Text>
-                  {(suggestion.description ||
-                    suggestion.label !== suggestion.value) && (
-                    <Text numberOfLines={1} style={styles.descriptionText}>
-                      {suggestion.label !== suggestion.value
-                        ? suggestion.label
-                        : suggestion.description}
-                    </Text>
-                  )}
-                </View>
-
-                <View
+                <Text
                   style={[
-                    styles.badge,
-                    { borderColor: SOURCE_COLOR[suggestion.source] },
+                    styles.badgeText,
+                    { color: SOURCE_COLOR[suggestion.source] },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      { color: SOURCE_COLOR[suggestion.source] },
-                    ]}
-                  >
-                    {SOURCE_LABEL[suggestion.source]}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Tap to complete</Text>
-        </View>
+                  {SOURCE_LABEL[suggestion.source]}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -96,72 +73,55 @@ export default function CommandAutocomplete({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left: 10,
-    right: 10,
-    bottom: 6,
+    left: 8,
+    right: 8,
+    top: 8,
+    alignItems: "center",
     zIndex: 1006,
   },
   card: {
-    backgroundColor: "rgba(16, 16, 16, 0.96)",
+    alignSelf: "stretch",
+    backgroundColor: "rgba(16, 16, 16, 0.9)",
     borderColor: "rgba(252, 251, 248, 0.12)",
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
+    maxWidth: 620,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.24,
-    shadowRadius: 14,
-  },
-  list: {
-    maxHeight: 124,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
   },
   row: {
     alignItems: "center",
     borderBottomColor: "rgba(255, 255, 255, 0.06)",
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
-    gap: 8,
-    minHeight: 38,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
+    gap: 6,
+    height: 26,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   selectedRow: {
-    backgroundColor: "rgba(247, 244, 237, 0.1)",
-  },
-  commandBlock: {
-    flex: 1,
-    minWidth: 0,
+    backgroundColor: "rgba(247, 244, 237, 0.12)",
   },
   commandText: {
     color: "#FCFBF8",
+    flex: 1,
     fontFamily: "monospace",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  descriptionText: {
-    color: "rgba(252,251,248,0.5)",
     fontSize: 10,
-    marginTop: 1,
+    fontWeight: "600",
+    minWidth: 0,
   },
   badge: {
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
   },
   badgeText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: "700",
-    letterSpacing: 0.2,
-  },
-  footer: {
-    backgroundColor: "rgba(252, 251, 248, 0.04)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  footerText: {
-    color: "rgba(252,251,248,0.42)",
-    fontSize: 9,
-    textAlign: "center",
+    letterSpacing: 0,
   },
 });
