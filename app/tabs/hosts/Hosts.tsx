@@ -20,6 +20,7 @@ import {
   getFoldersWithStats,
   getSSHHosts,
   initializeServerConfig,
+  refreshServerPolling,
 } from "@/app/main-axios";
 import { getResponsivePadding } from "@/app/utils/responsive";
 import { useOrientation } from "@/app/utils/orientation";
@@ -64,8 +65,38 @@ export default function Hosts() {
     Record<number, ServerStatus>
   >({});
   const isRefreshingRef = useRef(false);
+  const statusRetryTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const padding = getResponsivePadding(isLandscape);
+
+  const loadServerStatuses = useCallback(async (force = false) => {
+    try {
+      statusRetryTimersRef.current.forEach(clearTimeout);
+      statusRetryTimersRef.current = [];
+
+      if (force) {
+        await refreshServerPolling().catch(() => undefined);
+      }
+
+      const statuses = await getAllServerStatuses();
+      setServerStatuses(statuses || {});
+
+      if (Object.keys(statuses || {}).length === 0) {
+        [1200, 3500].forEach((delay) => {
+          const timer = setTimeout(() => {
+            void getAllServerStatuses()
+              .then((nextStatuses) => {
+                setServerStatuses(nextStatuses || {});
+              })
+              .catch(() => undefined);
+          }, delay);
+          statusRetryTimersRef.current.push(timer);
+        });
+      }
+    } catch {
+      // Status should never block opening the server list.
+    }
+  }, []);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefreshingRef.current) return;
@@ -79,7 +110,9 @@ export default function Hosts() {
         setLoading(true);
       }
 
-      await initializeServerConfig();
+      if (!getCurrentServerUrl()) {
+        await initializeServerConfig();
+      }
 
       const currentServerUrl = getCurrentServerUrl();
 
@@ -91,9 +124,9 @@ export default function Hosts() {
         return;
       }
 
-      const [hostsResult, statusesResult] = await Promise.allSettled([
+      const [hostsResult, foldersResult] = await Promise.allSettled([
         getSSHHosts(),
-        getAllServerStatuses(),
+        getFoldersWithStats(),
       ]);
 
       if (hostsResult.status !== "fulfilled") {
@@ -106,13 +139,8 @@ export default function Hosts() {
         : Array.isArray((hostsRaw as any)?.hosts)
           ? (hostsRaw as any).hosts
           : [];
-      const statuses =
-        statusesResult.status === "fulfilled" ? statusesResult.value : {};
-
-      let foldersData = null;
-      try {
-        foldersData = await getFoldersWithStats();
-      } catch {}
+      const foldersData =
+        foldersResult.status === "fulfilled" ? foldersResult.value : null;
 
       const folderMap = new Map<string, FolderData>();
 
@@ -150,7 +178,7 @@ export default function Hosts() {
       });
 
       setFolders(foldersArray);
-      setServerStatuses(statuses);
+      void loadServerStatuses(isRefresh);
     } catch (error: any) {
       console.error("[Hosts] Error loading hosts:", error);
 
@@ -170,7 +198,7 @@ export default function Hosts() {
       setRefreshing(false);
       isRefreshingRef.current = false;
     }
-  }, []);
+  }, [loadServerStatuses]);
 
   const handleRefresh = useCallback(() => {
     if (!isRefreshingRef.current) {
@@ -181,6 +209,10 @@ export default function Hosts() {
   useFocusEffect(
     useCallback(() => {
       fetchData();
+      return () => {
+        statusRetryTimersRef.current.forEach(clearTimeout);
+        statusRetryTimersRef.current = [];
+      };
     }, [fetchData]),
   );
 
@@ -214,7 +246,7 @@ export default function Hosts() {
         hosts: folder.hosts.filter((host) => {
           const status = getHostStatus(host.id);
           if (activeFilter === "online" && status !== "online") return false;
-          if (activeFilter === "failed" && status === "online") return false;
+          if (activeFilter === "failed" && status !== "offline") return false;
           if (activeFilter === "pinned" && !host.pin) return false;
 
           if (!query) return true;
@@ -382,18 +414,25 @@ export default function Hosts() {
         className="mb-3 flex-row items-center rounded-md border px-3"
         style={{
           height: 44,
-          backgroundColor: BACKGROUNDS.CARD,
-          borderColor: BORDER_COLORS.SECONDARY,
+          backgroundColor: BACKGROUNDS.BUTTON_ALT,
+          borderColor: BORDER_COLORS.PANEL,
         }}
       >
-        <Search size={17} color={TEXT_COLORS.TERTIARY} />
+        <Search size={17} color={TEXT_COLORS.SECONDARY} />
         <TextInput
-          className="ml-2 flex-1 text-base"
+          className="ml-2 flex-1 text-sm"
           placeholder="Search by host, user, tag, folder"
           placeholderTextColor={TEXT_COLORS.TERTIARY}
           value={searchQuery}
           onChangeText={setSearchQuery}
-          style={{ color: TEXT_COLORS.PRIMARY }}
+          selectionColor={TEXT_COLORS.ACCENT}
+          underlineColorAndroid="transparent"
+          style={{
+            color: TEXT_COLORS.PRIMARY,
+            backgroundColor: "transparent",
+            paddingVertical: 0,
+            includeFontPadding: false,
+          }}
         />
       </View>
 

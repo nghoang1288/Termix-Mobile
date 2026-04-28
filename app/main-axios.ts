@@ -1717,7 +1717,7 @@ export async function getAllServerStatuses(): Promise<
   Record<number, ServerStatus>
 > {
   try {
-    const response = await statsApi.get("/status");
+    const response = await statsApi.get("/status", { timeout: 4500 });
     return response.data || {};
   } catch (error: any) {
     if (error?.response?.status === 404) {
@@ -1725,6 +1725,7 @@ export async function getAllServerStatuses(): Promise<
         const alt = axios.create({
           baseURL: getRootBase(8085),
           headers: { "Content-Type": "application/json" },
+          timeout: 4500,
         });
         const response = await alt.get("/status");
         return response.data || {};
@@ -1738,7 +1739,7 @@ export async function getAllServerStatuses(): Promise<
 
 export async function getServerStatusById(id: number): Promise<ServerStatus> {
   try {
-    const response = await statsApi.get(`/status/${id}`);
+    const response = await statsApi.get(`/status/${id}`, { timeout: 4500 });
     return response.data;
   } catch (error: any) {
     if (error?.response?.status === 404) {
@@ -1746,6 +1747,7 @@ export async function getServerStatusById(id: number): Promise<ServerStatus> {
         const alt = axios.create({
           baseURL: getRootBase(8085),
           headers: { "Content-Type": "application/json" },
+          timeout: 4500,
         });
         const response = await alt.get(`/status/${id}`);
         return response.data;
@@ -1780,7 +1782,7 @@ export async function getServerMetricsById(id: number): Promise<ServerMetrics> {
 
 export async function refreshServerPolling(): Promise<void> {
   try {
-    await statsApi.post("/refresh");
+    await statsApi.post("/refresh", undefined, { timeout: 5000 });
   } catch (error) {
     console.warn("Failed to refresh server polling:", error);
   }
