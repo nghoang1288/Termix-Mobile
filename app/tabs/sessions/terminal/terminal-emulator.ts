@@ -137,6 +137,24 @@ export class MobileTerminalEmulator {
     return firstLineBreak > -1 ? trimmed.slice(firstLineBreak + 1) : trimmed;
   }
 
+  getCursorSnapshot() {
+    const renderableLines = this.getRenderableLines();
+    const lineIndex = clamp(
+      this.scrollback.length + this.cursor.row,
+      0,
+      Math.max(0, renderableLines.length - 1),
+    );
+
+    return {
+      row: this.cursor.row,
+      col: this.cursor.col,
+      lineIndex,
+      lineCount: renderableLines.length,
+      cols: this.cols,
+      rows: this.rows,
+    };
+  }
+
   private consumeEscapeSequence(data: string, start: number) {
     if (start + 1 >= data.length) return -1;
 

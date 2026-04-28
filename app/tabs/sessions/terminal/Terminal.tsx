@@ -14,6 +14,7 @@ import {
   AccessibilityInfo,
   ScrollView,
   Platform,
+  type LayoutChangeEvent,
 } from "react-native";
 import { logActivity, getSnippets } from "../../../main-axios";
 import { showToast } from "../../../utils/toast";
@@ -85,6 +86,12 @@ export type TerminalHandle = {
 
 type TerminalConnectionManager = NativeWebSocketManager | DirectSSHManager;
 
+const TERMINAL_HORIZONTAL_PADDING = 6;
+const TERMINAL_TOP_PADDING = 4;
+const TERMINAL_BOTTOM_PADDING = 16;
+const AUTOCOMPLETE_ROW_HEIGHT = 22;
+const AUTOCOMPLETE_VERTICAL_GAP = 8;
+
 const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
   (
     {
@@ -121,6 +128,10 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     const [screenDimensions, setScreenDimensions] = useState(
       Dimensions.get("window"),
     );
+    const [terminalViewportSize, setTerminalViewportSize] = useState(() => {
+      const dimensions = Dimensions.get("window");
+      return { width: dimensions.width, height: dimensions.height };
+    });
     type ConnectionState =
       | "connecting"
       | "connected"
@@ -225,6 +236,20 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       });
     }, []);
 
+    const handleTerminalLayout = useCallback((event: LayoutChangeEvent) => {
+      const { width, height } = event.nativeEvent.layout;
+      setTerminalViewportSize((current) => {
+        if (
+          Math.abs(current.width - width) < 1 &&
+          Math.abs(current.height - height) < 1
+        ) {
+          return current;
+        }
+
+        return { width, height };
+      });
+    }, []);
+
     const writeToAccessibility = useCallback((rawData: string) => {
       const cleaned = rawData
         .replace(/\x1b\[[0-9;]*[mGKHJABCDsu]/g, "")
@@ -289,6 +314,16 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 
       return () => subscription?.remove();
     }, []);
+
+    useEffect(() => {
+      if (showAutocomplete && autocompleteSuggestions.length > 0) {
+        scrollToTerminalBottom(false);
+      }
+    }, [
+      autocompleteSuggestions.length,
+      scrollToTerminalBottom,
+      showAutocomplete,
+    ]);
 
     useEffect(() => {
       const nextSize = estimateTerminalSize(
@@ -804,6 +839,18 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       (connectionState === "connecting" && hasReceivedData);
     const connectionStatusLabel =
       connectionState === "reconnecting" ? "Reconnecting..." : "Connecting...";
+    const autocompleteBottomPadding =
+      showAutocomplete && autocompleteSuggestions.length > 0
+        ? getAutocompleteVerticalSpace(autocompleteSuggestions.length)
+        : TERMINAL_BOTTOM_PADDING;
+    const autocompleteAnchor = getAutocompleteAnchor({
+      command: commandInputRef.current,
+      cursor: terminalEmulatorRef.current.getCursorSnapshot(),
+      fontSize: terminalPresentation.fontSize,
+      lineHeight: terminalPresentation.lineHeight,
+      suggestionCount: autocompleteSuggestions.length,
+      viewport: terminalViewportSize,
+    });
 
     return (
       <View
@@ -832,6 +879,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         >
           <View
             style={{ flex: 1, backgroundColor: terminalBackgroundColor }}
+            onLayout={handleTerminalLayout}
             pointerEvents={
               totpRequired || showAuthDialog || hostKeyVerification !== null
                 ? "none"
@@ -848,9 +896,9 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
               }}
               contentContainerStyle={{
                 minHeight: "100%",
-                paddingHorizontal: 6,
-                paddingTop: 4,
-                paddingBottom: 16,
+                paddingHorizontal: TERMINAL_HORIZONTAL_PADDING,
+                paddingTop: TERMINAL_TOP_PADDING,
+                paddingBottom: autocompleteBottomPadding,
               }}
               keyboardShouldPersistTaps="handled"
               showsHorizontalScrollIndicator={false}
@@ -1008,6 +1056,13 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
             !showAuthDialog &&
             hostKeyVerification === null && (
               <CommandAutocomplete
+                anchor={autocompleteAnchor}
+                colors={{
+                  background: terminalPresentation.autocompleteBackground,
+                  border: terminalPresentation.autocompleteBorder,
+                  foreground: terminalPresentation.foreground,
+                  selectedBackground: terminalPresentation.selectionBackground,
+                }}
                 suggestions={autocompleteSuggestions}
                 selectedIndex={autocompleteSelectedIndex}
                 onSelect={applyAutocompleteSuggestion}
@@ -1102,8 +1157,13 @@ function getTerminalPresentation(
 
   return {
     background: themeColors.background,
+    autocompleteBackground: withAlpha(themeColors.background, 0.96),
+    autocompleteBorder: withAlpha(themeColors.foreground, 0.18),
     foreground: themeColors.foreground,
     mutedForeground: themeColors.brightBlack || "#71717A",
+    selectionBackground:
+      themeColors.selectionBackground ||
+      withAlpha(themeColors.foreground, 0.16),
     fontFamily: getNativeMonospaceFont(terminalConfig.fontFamily),
     fontSize,
     letterSpacing: Number(terminalConfig.letterSpacing || 0),
@@ -1136,4 +1196,104 @@ function estimateTerminalSize(
     cols: Math.max(20, Math.floor(availableWidth / charWidth)),
     rows: Math.max(8, Math.floor(availableHeight / lineHeight)),
   };
+}
+
+function getAutocompleteVerticalSpace(suggestionCount: number) {
+  return (
+    Math.min(3, Math.max(1, suggestionCount)) * AUTOCOMPLETE_ROW_HEIGHT +
+    AUTOCOMPLETE_VERTICAL_GAP +
+    TERMINAL_BOTTOM_PADDING
+  );
+}
+
+function getAutocompleteAnchor({
+  command,
+  cursor,
+  fontSize,
+  lineHeight,
+  suggestionCount,
+  viewport,
+}: {
+  command: string;
+  cursor: {
+    col: number;
+    lineCount: number;
+    lineIndex: number;
+  };
+  fontSize: number;
+  lineHeight: number;
+  suggestionCount: number;
+  viewport: { width: number; height: number };
+}) {
+  const width = Math.max(1, viewport.width);
+  const height = Math.max(1, viewport.height);
+  const charWidth = Math.max(6, fontSize * 0.6);
+  const popupHeight =
+    Math.min(3, Math.max(1, suggestionCount)) * AUTOCOMPLETE_ROW_HEIGHT + 2;
+  const spacerRows = Math.ceil(
+    getAutocompleteVerticalSpace(suggestionCount) / lineHeight,
+  );
+  const visibleRows = Math.max(
+    1,
+    Math.floor(
+      (height - TERMINAL_TOP_PADDING - TERMINAL_BOTTOM_PADDING) / lineHeight,
+    ),
+  );
+  const availableTextRows = Math.max(1, visibleRows - spacerRows);
+  const firstVisibleLine = Math.max(0, cursor.lineCount - availableTextRows);
+  const visibleRow = clampNumber(
+    cursor.lineIndex - firstVisibleLine,
+    0,
+    Math.max(0, visibleRows - 1),
+  );
+  const tokenStart = getCurrentTokenStart(command);
+  const tokenColumnsFromCursor = Math.max(0, command.length - tokenStart);
+  const tokenStartColumn = Math.max(0, cursor.col - tokenColumnsFromCursor);
+  const minimumFitWidth = Math.min(150, Math.max(96, width - 12));
+  const desiredLeft =
+    TERMINAL_HORIZONTAL_PADDING + tokenStartColumn * charWidth;
+  const left = clampNumber(
+    desiredLeft,
+    TERMINAL_HORIZONTAL_PADDING,
+    Math.max(
+      TERMINAL_HORIZONTAL_PADDING,
+      width - minimumFitWidth - TERMINAL_HORIZONTAL_PADDING,
+    ),
+  );
+  const maxWidth = Math.max(
+    84,
+    Math.min(360, width - left - TERMINAL_HORIZONTAL_PADDING),
+  );
+  const desiredTop = TERMINAL_TOP_PADDING + (visibleRow + 1) * lineHeight + 2;
+  const top = clampNumber(
+    desiredTop,
+    TERMINAL_TOP_PADDING,
+    Math.max(TERMINAL_TOP_PADDING, height - popupHeight - 6),
+  );
+
+  return { left, maxWidth, top };
+}
+
+function getCurrentTokenStart(command: string) {
+  const match = /(?:^|[\s;&|])([^\s;&|]*)$/.exec(command);
+  if (!match) return 0;
+
+  return command.length - match[1].length;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function withAlpha(hex: string, alpha: number) {
+  const normalized = hex.replace("#", "");
+  if (normalized.length !== 6) return hex;
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+
+  if (![red, green, blue].every(Number.isFinite)) return hex;
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
