@@ -3,6 +3,7 @@
     "name": "SSHBridge",
     "slug": "sshbridge",
     "version": "0.2",
+    "description": "Terminal-first mobile SSH client for SSHBridge, with offline hosts, secure storage, file manager, stats, and tunnels.",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sshbridge",

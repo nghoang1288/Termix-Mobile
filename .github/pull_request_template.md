@@ -27,5 +27,8 @@ _(Optional: add before/after screenshots, GIFs, or console output)_
 # Checklist
 
 - [ ] Code follows project style guidelines
-- [ ] Supports mobile and desktop UI/app (if applicable)
-- [ ] I have read [Contributing.md](https://github.com/nghoang1288/SSHBridge-Web/blob/main/CONTRIBUTING.md)
+- [ ] Mobile UI works on small screens and landscape where applicable
+- [ ] I ran `npx tsc --noEmit`
+- [ ] I included screenshots or a demo for UI changes
+- [ ] I described storage/security migration behavior if applicable
+- [ ] I have read [Contributing.md](https://github.com/nghoang1288/SSHBridge-Mobile/blob/main/CONTRIBUTING.md)

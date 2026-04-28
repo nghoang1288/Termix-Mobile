@@ -28,7 +28,7 @@ export interface TerminalTheme {
 }
 
 export const TERMINAL_THEMES: Record<string, TerminalTheme> = {
-    termix: {
+    sshbridge: {
         name: "SSHBridge Default",
         category: "dark",
         colors: {
@@ -690,7 +690,7 @@ export const DEFAULT_TERMINAL_CONFIG = {
     fontFamily: "Caskaydia Cove Nerd Font Mono",
     letterSpacing: 0,
     lineHeight: 1.2,
-    theme: "termix",
+    theme: "sshbridge",
 
     scrollback: 10000,
     bellStyle: "none" as const,

@@ -1,78 +1,144 @@
+<p align="center">
+  <img src="./repo-images/sshbridge-icon-c.png" width="112" alt="SSHBridge Mobile icon"/>
+</p>
+
 # SSHBridge Mobile
 
-![GitHub Repo stars](https://img.shields.io/github/stars/nghoang1288/SSHBridge-Mobile?style=flat&label=Stars)
-![GitHub forks](https://img.shields.io/github/forks/nghoang1288/SSHBridge-Mobile?style=flat&label=Forks)
-![GitHub Release](https://img.shields.io/github/v/release/nghoang1288/SSHBridge-Mobile?style=flat&label=Release)
-<a href="https://discord.gg/jVQGdvHDrf"><img alt="Discord" src="https://img.shields.io/discord/1347374268253470720"></a>
+![Release](https://img.shields.io/github/v/release/nghoang1288/SSHBridge-Mobile?style=flat&label=release)
+![Expo](https://img.shields.io/badge/Expo-54-1c1c1c?style=flat)
+![Android](https://img.shields.io/badge/Android-APK-22c55e?style=flat)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat)
 
-# Overview
+SSHBridge Mobile is a terminal-first SSH client for phones and tablets. It is
+designed around one goal: open the app, pick a server, and get back to the
+terminal with as little friction as possible.
 
-Full remote SSH control of your servers with SSHBridge, a mobile SSH terminal and server management tool. It can connect directly from your device or through your existing SSHBridge server.
+![SSHBridge Mobile overview](./repo-images/sshbridge-mobile-overview.svg)
 
-# Planned Features
+## What It Does
 
-See the repository issues and project board for planned SSHBridge features. If you are looking to contribute, see [Contributing](https://github.com/nghoang1288/SSHBridge-Mobile/blob/main/CONTRIBUTING.md).
+- **Fast server access**: save servers once, then reconnect from the server list.
+- **Mobile SSH terminal**: fullscreen terminal, custom key bar, paste support,
+  arrow keys, `Ctrl`, `Alt`, `Esc`, `Tab`, and terminal-friendly symbols.
+- **Offline mode**: use saved offline hosts without signing in to a server.
+- **Secure local storage**: JWTs and offline SSH secrets are stored with
+  `expo-secure-store`; legacy AsyncStorage secrets are migrated automatically.
+- **Host key verification**: review and accept new or changed SSH host keys.
+- **File manager**: browse, create, rename, edit, copy, move, and delete files
+  over SSH.
+- **Server stats**: check CPU, memory, disk, and quick actions from mobile.
+- **Port forwarding**: manage local and remote SSH tunnels from the app.
+- **Session resilience**: reconnect and keep terminal sessions alive across
+  backgrounding and poor mobile networks where supported.
 
-# Features
+## Recommended Flow
 
-- **SSH Terminal** - SSH terminal with multi-session support. Switch between two keyboard modes: the system keyboard and a custom terminal keyboard that is optimized for terminal use. The custom keyboard is completely configurable to your preferences. Has support for background-keepalive, VoiceOver, dication, Bluetooth/physical keyboards, emojis, etc.
-- **SSH File Manager** - View, edit, modify, and move files and folders via SSH.
-- **SSH Server Stats** - Get information on a servers status such as CPU, RAM, HDD, etc.
-- **SSH Tunnels** - Start, stop, and manage SSH tunnels.
-- **Server Configuration** - Easily connect to your existing SSHBridge server via IP/domain. It has support for reverse proxy access login pages, logging in with OIDC, and regular username/password logins.
+1. Install the APK from the latest GitHub release.
+2. Open SSHBridge Mobile.
+3. Enter your SSHBridge server URL, or choose **Continue offline**.
+4. Add or sync servers.
+5. Tap a server to enter the terminal.
 
-# Installation
+For daily use, the home screen should be the server list. Avoid re-entering
+passwords or keys unless credentials have changed.
 
-SSHBridge Mobile is built for Android and iOS.
+## Installation
 
-# Sponsors
+### Android
 
-<p align="left">
-  <a href="https://www.digitalocean.com/">
-    <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" height="50" alt="DigitalOcean">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://crowdin.com/">
-    <img src="https://support.crowdin.com/assets/logos/core-logo/svg/crowdin-core-logo-cDark.svg" height="50" alt="Crowdin">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://www.blacksmith.sh/">
-    <img src="https://cdn.prod.website-files.com/681bfb0c9a4601bc6e288ec4/683ca9e2c5186757092611b8_e8cb22127df4da0811c4120a523722d2_logo-backsmith-wordmark-light.svg" height="50" alt="Blacksmith">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://www.cloudflare.com/">
-    <img src="https://sirv.sirv.com/website/screenshots/cloudflare/cloudflare-logo.png?w=300" height="50" alt="Crowdflare">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://tailscale.com/">
-    <img src="https://drive.google.com/uc?export=view&id=1lIxkJuX6M23bW-2FElhT0rQieTrzaVSL" height="50" alt="TailScale">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://akamai.com/">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/8/8b/Akamai_logo.svg" height="50" alt="Akamai">
-  </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <a href="https://aws.amazon.com/">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Amazon_Web_Services_Logo.svg/960px-Amazon_Web_Services_Logo.svg.png" height="50" alt="AWS">
-  </a>
-</p>
+Download the latest APK from
+[GitHub Releases](https://github.com/nghoang1288/SSHBridge-Mobile/releases).
 
-# Support
+Current release line: `0.2`.
 
-If you need help or want to request a feature with SSHBridge Mobile, visit the [Issues](https://github.com/nghoang1288/SSHBridge-Mobile/issues) page and press `New Issue`.
-Please be as detailed as possible in your issue, preferably written in English. You can also join the [Discord](https://discord.gg/jVQGdvHDrf) server and visit the support
-channel, however, response times may be longer.
+### iOS
 
-# Show-off
+iOS support is kept in the Expo/React Native project, but no public App Store or
+TestFlight release is published from this repository yet. Build with EAS or a
+local iOS development environment if needed.
 
-<p align="center">
-  <img src="./repo-images/Image 1.png" width="160" alt="SSHBridge Demo 1"/>
-  <img src="./repo-images/Image 2.png" width="160" alt="SSHBridge Demo 2"/>
-  <img src="./repo-images/Image 3.png" width="160" alt="SSHBridge Demo 3"/>
-  <img src="./repo-images/Image 4.png" width="160" alt="SSHBridge Demo 4"/>
-  <img src="./repo-images/Image 5.png" width="160" alt="SSHBridge Demo 5"/>
-</p>
+## Build From Source
 
-# License
+Prerequisites:
 
-Distributed under the Apache License Version 2.0. See LICENSE for more information.
+- Node.js 20 or newer
+- npm
+- Android Studio / Android SDK for APK builds
+- Java version compatible with the Android Gradle Plugin used by the project
+
+Install dependencies:
+
+```sh
+npm install
+```
+
+Start the Expo development server:
+
+```sh
+npm run start
+```
+
+Build a release APK locally:
+
+```sh
+cd android
+./gradlew assembleRelease
+```
+
+On Windows PowerShell:
+
+```powershell
+cd android
+.\gradlew.bat assembleRelease
+```
+
+The APK is generated at:
+
+```text
+android/app/build/outputs/apk/release/app-release.apk
+```
+
+## Configuration Notes
+
+- Prefer `https://` for the SSHBridge server URL.
+- `http://` is allowed for local or trusted self-hosted networks, but it is
+  plaintext and should not be used over the public internet.
+- Android backup is disabled for app data.
+- Private keys and passwords should never be committed to the repository.
+
+## Development Commands
+
+```sh
+npm run start
+npm run android
+npm run ios
+npx tsc --noEmit
+npm audit --omit=dev
+```
+
+## Repository Structure
+
+```text
+app/                  Expo Router screens, mobile UI, API, and storage logic
+app/tabs/sessions/    Terminal, file manager, tunnel, and stats screens
+assets/images/        App icon and splash assets
+plugins/              Expo config plugins for native Android/iOS settings
+android/              Generated/native Android project used for APK builds
+repo-images/          README and repository presentation assets
+```
+
+## Security
+
+Report vulnerabilities through
+[GitHub Security Advisories](https://github.com/nghoang1288/SSHBridge-Mobile/security/advisories).
+See [SECURITY.md](./SECURITY.md) for the reporting policy.
+
+## Contributing
+
+Pull requests are welcome. Before opening a PR, read
+[CONTRIBUTING.md](./CONTRIBUTING.md), run TypeScript checks, and include mobile
+screenshots for UI changes.
+
+## License
+
+Distributed under the Apache License 2.0. See [LICENSE](./LICENSE).

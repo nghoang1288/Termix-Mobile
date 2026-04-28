@@ -1145,9 +1145,12 @@ function getTerminalPresentation(
     ...config,
     ...hostTerminalConfig,
   };
-  const themeName = terminalConfig.theme || "termix";
+  const themeName =
+    terminalConfig.theme === "termix"
+      ? "sshbridge"
+      : terminalConfig.theme || "sshbridge";
   const themeColors =
-    TERMINAL_THEMES[themeName]?.colors || TERMINAL_THEMES.termix.colors;
+    TERMINAL_THEMES[themeName]?.colors || TERMINAL_THEMES.sshbridge.colors;
   const fontSize = Number(terminalConfig.fontSize || 14);
   const lineHeightMultiplier = Number(terminalConfig.lineHeight || 1.2);
   const lineHeight = Math.max(12, Math.round(fontSize * lineHeightMultiplier));

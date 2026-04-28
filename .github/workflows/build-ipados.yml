@@ -13,8 +13,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm install
@@ -46,11 +46,11 @@ jobs:
           cd ios
 
           # Build for generic iOS device (unsigned)
-          xcodebuild -workspace Termix.xcworkspace \
-            -scheme Termix \
+          xcodebuild -workspace SSHBridge.xcworkspace \
+            -scheme SSHBridge \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath ../release/Termix.xcarchive \
+            -archivePath ../release/SSHBridge.xcarchive \
             archive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -62,14 +62,14 @@ jobs:
         run: |
           cd release
           mkdir -p Payload
-          cp -r Termix.xcarchive/Products/Applications/Termix.app Payload/
-          zip -r termix_ios_${{ steps.version.outputs.version }}.ipa Payload
+          cp -r SSHBridge.xcarchive/Products/Applications/SSHBridge.app Payload/
+          zip -r sshbridge_ios_${{ steps.version.outputs.version }}.ipa Payload
           rm -rf Payload
 
       - name: Upload iPadOS IPA
         uses: actions/upload-artifact@v4
         with:
-          name: termix_ipados_${{ steps.version.outputs.version }}
-          path: release/termix_ios_${{ steps.version.outputs.version }}.ipa
+          name: sshbridge_ipados_${{ steps.version.outputs.version }}
+          path: release/sshbridge_ios_${{ steps.version.outputs.version }}.ipa
           retention-days: 30
           if-no-files-found: error

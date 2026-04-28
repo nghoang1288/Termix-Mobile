@@ -1,0 +1,59 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">SSHBridge Mobile overview</title>
+  <desc id="desc">Light theme product overview showing server list, terminal, and mobile keyboard workflow.</desc>
+  <rect width="1280" height="720" fill="#f7f4ed"/>
+  <rect x="48" y="48" width="1184" height="624" rx="28" fill="#fcfbf8" stroke="#eceae4" stroke-width="2"/>
+  <text x="96" y="126" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="800">SSHBridge Mobile</text>
+  <text x="98" y="168" fill="#5f5f5d" font-family="Inter, Arial, sans-serif" font-size="22">Terminal-first SSH client for fast mobile server access.</text>
+  <g transform="translate(96 224)">
+    <rect width="304" height="356" rx="30" fill="#101010"/>
+    <rect x="16" y="18" width="272" height="320" rx="22" fill="#f7f4ed"/>
+    <text x="40" y="66" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="700">Servers</text>
+    <rect x="188" y="42" width="56" height="32" rx="16" fill="#1c1c1c"/>
+    <text x="205" y="64" fill="#fcfbf8" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">3ms</text>
+    <rect x="40" y="92" width="208" height="36" rx="8" fill="#fcfbf8" stroke="#eceae4"/>
+    <text x="56" y="116" fill="#8b8780" font-family="Inter, Arial, sans-serif" font-size="14">Search hosts</text>
+    <rect x="40" y="152" width="208" height="58" rx="12" fill="#fcfbf8" stroke="#e4e0d6"/>
+    <circle cx="68" cy="181" r="12" fill="#22c55e"/>
+    <text x="92" y="176" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">Oracle VPS</text>
+    <text x="92" y="196" fill="#5f5f5d" font-family="Inter, Arial, sans-serif" font-size="12">ubuntu at 158.178.x.x</text>
+    <rect x="40" y="224" width="208" height="58" rx="12" fill="#fcfbf8" stroke="#e4e0d6"/>
+    <circle cx="68" cy="253" r="12" fill="#ef4444"/>
+    <text x="92" y="248" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">Backup NAS</text>
+    <text x="92" y="268" fill="#5f5f5d" font-family="Inter, Arial, sans-serif" font-size="12">last failed</text>
+  </g>
+  <g transform="translate(476 194)">
+    <rect width="350" height="416" rx="30" fill="#101010"/>
+    <rect x="18" y="20" width="314" height="376" rx="22" fill="#101010"/>
+    <text x="42" y="66" fill="#f7f4ed" font-family="JetBrains Mono, Consolas, monospace" font-size="20">$ ssh oracle</text>
+    <text x="42" y="104" fill="#f7f4ed" font-family="JetBrains Mono, Consolas, monospace" font-size="18">Connected to oracle-vps</text>
+    <text x="42" y="136" fill="#22c55e" font-family="JetBrains Mono, Consolas, monospace" font-size="18">latency 24ms</text>
+    <text x="42" y="184" fill="#f7f4ed" font-family="JetBrains Mono, Consolas, monospace" font-size="18">top - 21:38:15 up 12d</text>
+    <text x="42" y="214" fill="#f7f4ed" font-family="JetBrains Mono, Consolas, monospace" font-size="18">CPU  8%   MEM 41%</text>
+    <text x="42" y="244" fill="#f7f4ed" font-family="JetBrains Mono, Consolas, monospace" font-size="18">DISK 62%  NET ok</text>
+    <rect x="42" y="300" width="266" height="42" rx="10" fill="#1c1c1c" stroke="#22c55e"/>
+    <text x="62" y="327" fill="#22c55e" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">Ctrl</text>
+    <text x="126" y="327" fill="#f7f4ed" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">Alt</text>
+    <text x="184" y="327" fill="#f7f4ed" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">Tab</text>
+    <text x="242" y="327" fill="#f7f4ed" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">Esc</text>
+  </g>
+  <g transform="translate(890 224)">
+    <rect width="294" height="356" rx="30" fill="#101010"/>
+    <rect x="16" y="18" width="262" height="320" rx="22" fill="#f7f4ed"/>
+    <text x="40" y="66" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="700">Mobile tools</text>
+    <rect x="40" y="98" width="206" height="50" rx="12" fill="#fcfbf8" stroke="#e4e0d6"/>
+    <text x="62" y="130" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700">File manager</text>
+    <rect x="40" y="164" width="206" height="50" rx="12" fill="#fcfbf8" stroke="#e4e0d6"/>
+    <text x="62" y="196" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700">Port forwards</text>
+    <rect x="40" y="230" width="206" height="50" rx="12" fill="#fcfbf8" stroke="#e4e0d6"/>
+    <text x="62" y="262" fill="#1c1c1c" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700">Offline hosts</text>
+  </g>
+  <g transform="translate(96 616)">
+    <rect width="178" height="36" rx="18" fill="#1c1c1c"/>
+    <text x="24" y="24" fill="#fcfbf8" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">SecureStore</text>
+    <rect x="194" width="194" height="36" rx="18" fill="#e8f7ee"/>
+    <text x="220" y="24" fill="#166534" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Auto reconnect</text>
+    <rect x="404" width="184" height="36" rx="18" fill="#eef2ff"/>
+    <text x="430" y="24" fill="#3730a3" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Keyboard first</text>
+  </g>
+</svg>

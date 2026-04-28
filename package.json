@@ -1,7 +1,25 @@
 {
   "name": "sshbridge-mobile",
+  "description": "Terminal-first mobile SSH client for SSHBridge, with offline hosts, secure storage, file manager, stats, and tunnels.",
   "main": "expo-router/entry",
   "version": "0.2",
+  "homepage": "https://github.com/nghoang1288/SSHBridge-Mobile#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nghoang1288/SSHBridge-Mobile.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nghoang1288/SSHBridge-Mobile/issues"
+  },
+  "keywords": [
+    "ssh",
+    "terminal",
+    "mobile",
+    "react-native",
+    "expo",
+    "sftp",
+    "port-forwarding"
+  ],
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",

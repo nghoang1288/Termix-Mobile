@@ -1,4 +1,4 @@
-name: Build and Push App
+name: Build and Release SSHBridge Mobile
 on:
   workflow_dispatch:
     inputs:
@@ -21,6 +21,10 @@ on:
           - file
           - release
           - submit
+
+permissions:
+  contents: write
+
 jobs:
   build:
     name: build-${{ matrix.platform }}
@@ -37,7 +41,7 @@ jobs:
         uses: actions/setup-node@v4.0.2
         with:
           node-version: ${{ matrix.node }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v7
@@ -84,15 +88,15 @@ jobs:
             APK_FILE=$(find . -maxdepth 1 -type f -name "build-*.apk" 2>/dev/null | head -1)
 
             if [ -n "$APK_FILE" ]; then
-              cp "$APK_FILE" "build-artifacts/termix_android.apk"
-              echo "Copied to build-artifacts/termix_android_universal_${VERSION}.apk"
+              cp "$APK_FILE" "build-artifacts/sshbridge_android.apk"
+              echo "Copied to build-artifacts/sshbridge_android.apk"
             else
               echo "Trying /tmp search..."
               APK_FILE=$(find /tmp -type f -name "app-release.apk" 2>/dev/null | grep "eas-build-local-nodejs" | head -1)
 
               if [ -n "$APK_FILE" ]; then
                 echo "Found APK in /tmp: $APK_FILE"
-                cp "$APK_FILE" "build-artifacts/termix_android_universal_${VERSION}.apk"
+                cp "$APK_FILE" "build-artifacts/sshbridge_android.apk"
               else
                 echo "ERROR: APK not found after build"
                 ls -la . | grep -E '\.apk|build-'
@@ -103,12 +107,12 @@ jobs:
               AAB_FILE=$(find . -maxdepth 1 -type f -name "build-*.aab" 2>/dev/null | head -1)
 
               if [ -n "$AAB_FILE" ]; then
-                cp "$AAB_FILE" "build-artifacts/termix_android.aab"
+                cp "$AAB_FILE" "build-artifacts/sshbridge_android.aab"
               else
                 AAB_FILE=$(find /tmp -type f -name "app-release.aab" 2>/dev/null | grep "eas-build-local-nodejs" | head -1)
                 if [ -n "$AAB_FILE" ]; then
                   echo "Found AAB in /tmp: $AAB_FILE"
-                  cp "$AAB_FILE" "build-artifacts/termix_android_${VERSION}.aab"
+                  cp "$AAB_FILE" "build-artifacts/sshbridge_android.aab"
                 fi
               fi
             fi
@@ -119,14 +123,14 @@ jobs:
 
             if [ -n "$IPA_FILE" ]; then
               echo "Found IPA in project root: $IPA_FILE"
-              cp "$IPA_FILE" "build-artifacts/termix_ios.ipa"
-              echo "Copied to build-artifacts/termix_ios_universal_${VERSION}.ipa"
+              cp "$IPA_FILE" "build-artifacts/sshbridge_ios.ipa"
+              echo "Copied to build-artifacts/sshbridge_ios.ipa"
             else
               IPA_FILE=$(find . -type f -name "*.ipa" -not -path "*/node_modules/*" 2>/dev/null | head -1)
 
               if [ -n "$IPA_FILE" ]; then
                 echo "Found IPA: $IPA_FILE"
-                cp "$IPA_FILE" "build-artifacts/termix_ios.ipa"
+                cp "$IPA_FILE" "build-artifacts/sshbridge_ios.ipa"
               else
                 echo "ERROR: IPA not found after build"
                 ls -la . | grep -E '\.ipa|build-'
@@ -162,7 +166,7 @@ jobs:
           VERSION=$(node -p "require('./app.json').expo.version")
 
           if [ "${{ matrix.platform }}" = "android" ]; then
-            BUILD_FILE="build-artifacts/termix_android.aab"
+            BUILD_FILE="build-artifacts/sshbridge_android.aab"
             if [ -f "$BUILD_FILE" ]; then
               echo "Using AAB for Play Store submission: $BUILD_FILE"
             else
@@ -171,7 +175,7 @@ jobs:
               exit 1
             fi
           else
-            BUILD_FILE="build-artifacts/termix_ios.ipa"
+            BUILD_FILE="build-artifacts/sshbridge_ios.ipa"
           fi
 
           if [ -n "$BUILD_FILE" ] && [ -f "$BUILD_FILE" ]; then
@@ -186,8 +190,8 @@ jobs:
         if: ${{ github.event.inputs.action == 'file' && matrix.platform == 'android' }}
         uses: actions/upload-artifact@v4
         with:
-          name: termix_android
-          path: build-artifacts/termix_android.apk
+          name: sshbridge_android
+          path: build-artifacts/sshbridge_android.apk
           retention-days: 30
           if-no-files-found: error
 
@@ -195,32 +199,17 @@ jobs:
         if: ${{ github.event.inputs.action == 'file' && matrix.platform == 'ios' }}
         uses: actions/upload-artifact@v4
         with:
-          name: termix_ios_universal
-          path: build-artifacts/termix_ios.ipa
+          name: sshbridge_ios
+          path: build-artifacts/sshbridge_ios.ipa
           retention-days: 30
           if-no-files-found: error
 
       - name: Upload to GitHub Release
         if: ${{ github.event.inputs.action == 'release' }}
         env:
-          GH_TOKEN: ${{ secrets.TERMIX_RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.SSHBRIDGE_RELEASE_TOKEN || github.token }}
         run: |
           VERSION=$(node -p "require('./app.json').expo.version")
-
-          echo "Fetching latest release from nghoang1288/SSHBridge-Web..."
-          LATEST_RELEASE=$(gh release list --repo nghoang1288/SSHBridge-Web --limit 1 --json tagName,name,isLatest -q '.[0]')
-
-          if [ -z "$LATEST_RELEASE" ]; then
-            echo "ERROR: No releases found in nghoang1288/SSHBridge-Web"
-            exit 1
-          fi
-
-          RELEASE_TAG=$(echo "$LATEST_RELEASE" | jq -r '.tagName')
-          RELEASE_NAME=$(echo "$LATEST_RELEASE" | jq -r '.name')
-          RELEASE_URL="https://github.com/nghoang1288/SSHBridge-Web/releases/tag/$RELEASE_TAG"
-
-          echo "Latest release: $RELEASE_NAME ($RELEASE_TAG)"
-          echo "Release URL: $RELEASE_URL"
 
           echo "Fetching latest release from nghoang1288/SSHBridge-Mobile..."
           MOBILE_RELEASE=$(gh release list --repo nghoang1288/SSHBridge-Mobile --limit 1 --json tagName,name,isLatest -q '.[0]')
@@ -238,45 +227,29 @@ jobs:
           echo "Mobile Release URL: $MOBILE_URL"
 
           if [ "${{ matrix.platform }}" = "android" ]; then
-            APK_FILE="build-artifacts/termix_android.apk"
+            APK_FILE="build-artifacts/sshbridge_android.apk"
             if [ -f "$APK_FILE" ]; then
-              echo "Uploading $APK_FILE to nghoang1288/SSHBridge-Web..."
-              gh release upload "$RELEASE_TAG" \
-                "$APK_FILE" \
-                --repo nghoang1288/SSHBridge-Web \
-                --clobber
-
-              echo "✓ Android APK uploaded to nghoang1288/SSHBridge-Web"
-
               echo "Uploading $APK_FILE to nghoang1288/SSHBridge-Mobile..."
               gh release upload "$MOBILE_TAG" \
                 "$APK_FILE" \
                 --repo nghoang1288/SSHBridge-Mobile \
                 --clobber
 
-              echo "✓ Android APK uploaded to nghoang1288/SSHBridge-Mobile"
+              echo "Android APK uploaded to nghoang1288/SSHBridge-Mobile"
             else
               echo "ERROR: Android APK not found: $APK_FILE"
               exit 1
             fi
           elif [ "${{ matrix.platform }}" = "ios" ]; then
-            IPA_FILE="build-artifacts/termix_ios.ipa"
+            IPA_FILE="build-artifacts/sshbridge_ios.ipa"
             if [ -f "$IPA_FILE" ]; then
-              echo "Uploading $IPA_FILE to nghoang1288/SSHBridge-Web..."
-              gh release upload "$RELEASE_TAG" \
-                "$IPA_FILE" \
-                --repo nghoang1288/SSHBridge-Web \
-                --clobber
-
-              echo "✓ iOS IPA uploaded to nghoang1288/SSHBridge-Web"
-
               echo "Uploading $IPA_FILE to nghoang1288/SSHBridge-Mobile..."
               gh release upload "$MOBILE_TAG" \
                 "$IPA_FILE" \
                 --repo nghoang1288/SSHBridge-Mobile \
                 --clobber
 
-              echo "✓ iOS IPA uploaded to nghoang1288/SSHBridge-Mobile"
+              echo "iOS IPA uploaded to nghoang1288/SSHBridge-Mobile"
             else
               echo "ERROR: iOS IPA not found: $IPA_FILE"
               exit 1
@@ -284,6 +257,5 @@ jobs:
           fi
 
           echo ""
-          echo "Build uploaded to releases:"
-          echo "  - Termix: $RELEASE_URL"
-          echo "  - Mobile: $MOBILE_URL"
+          echo "Build uploaded to release:"
+          echo "  - SSHBridge Mobile: $MOBILE_URL"
