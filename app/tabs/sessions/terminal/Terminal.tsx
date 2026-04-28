@@ -49,6 +49,7 @@ import {
   getTerminalConnectionMode,
   type TerminalConnectionMode,
 } from "./terminal-connection-mode";
+import { MobileTerminalEmulator } from "./terminal-emulator";
 
 interface TerminalProps {
   hostConfig: {
@@ -84,8 +85,6 @@ export type TerminalHandle = {
 
 type TerminalConnectionManager = NativeWebSocketManager | DirectSSHManager;
 
-const MAX_TERMINAL_BUFFER_CHARS = 120000;
-
 const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
   (
     {
@@ -107,7 +106,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       null,
     );
     const scrollViewRef = useRef<ScrollView>(null);
-    const terminalOutputRef = useRef("");
+    const terminalEmulatorRef = useRef(new MobileTerminalEmulator(80, 24));
 
     const { config } = useTerminalCustomization();
     const terminalPresentation = getTerminalPresentation(
@@ -264,18 +263,14 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 
       if (!batch) return;
 
-      const nextOutput = appendNativeTerminalData(
-        terminalOutputRef.current,
-        batch,
-      );
-      terminalOutputRef.current = nextOutput;
-      setTerminalOutput(nextOutput);
+      terminalEmulatorRef.current.write(batch);
+      setTerminalOutput(terminalEmulatorRef.current.toString());
       scrollToTerminalBottom(false);
     }, [scrollToTerminalBottom]);
 
-    const resetNativeTerminal = useCallback(() => {
+    const resetNativeTerminal = useCallback((cols: number, rows: number) => {
       pendingDataRef.current = [];
-      terminalOutputRef.current = "";
+      terminalEmulatorRef.current.reset(cols, rows);
       setTerminalOutput("");
       setHasReceivedData(false);
       if (dataFlushTimerRef.current) {
@@ -311,6 +306,8 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 
       terminalColsRef.current = nextSize.cols;
       terminalRowsRef.current = nextSize.rows;
+      terminalEmulatorRef.current.resize(nextSize.cols, nextSize.rows);
+      setTerminalOutput(terminalEmulatorRef.current.toString());
       connectionManagerRef.current?.sendResize(nextSize.cols, nextSize.rows);
     }, [
       screenDimensions,
@@ -646,7 +643,6 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       if (!connectionModeLoaded) return;
 
       connectionManagerRef.current?.destroy();
-      resetNativeTerminal();
 
       const initialSize = estimateTerminalSize(
         screenDimensions,
@@ -655,6 +651,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       );
       terminalColsRef.current = initialSize.cols;
       terminalRowsRef.current = initialSize.rows;
+      resetNativeTerminal(initialSize.cols, initialSize.rows);
 
       const managerConfig: NativeWSConfig = {
         hostConfig: hostConfig as TerminalHostConfig,
@@ -1139,69 +1136,4 @@ function estimateTerminalSize(
     cols: Math.max(20, Math.floor(availableWidth / charWidth)),
     rows: Math.max(8, Math.floor(availableHeight / lineHeight)),
   };
-}
-
-function appendNativeTerminalData(currentOutput: string, rawData: string) {
-  const normalized = normalizeTerminalData(rawData);
-  let output = normalized.clearBeforeAppend ? "" : currentOutput;
-
-  for (const char of normalized.text) {
-    if (char === "\n") {
-      output += "\n";
-      continue;
-    }
-
-    if (char === "\r") {
-      output = replaceCurrentLine(output, "");
-      continue;
-    }
-
-    if (char === "\b" || char === "\x7f") {
-      output = output.slice(0, -1);
-      continue;
-    }
-
-    if (char === "\f") {
-      output = "";
-      continue;
-    }
-
-    if (char === "\t") {
-      output += "    ";
-      continue;
-    }
-
-    if (char >= " ") {
-      output += char;
-    }
-  }
-
-  if (output.length <= MAX_TERMINAL_BUFFER_CHARS) {
-    return output;
-  }
-
-  const trimmed = output.slice(-MAX_TERMINAL_BUFFER_CHARS);
-  const firstLineBreak = trimmed.indexOf("\n");
-  return firstLineBreak > -1 ? trimmed.slice(firstLineBreak + 1) : trimmed;
-}
-
-function normalizeTerminalData(rawData: string) {
-  const clearBeforeAppend =
-    /\x1bc/.test(rawData) || /\x1b\[(?:2|3)?J/.test(rawData);
-  const text = rawData
-    .replace(/\r\n/g, "\n")
-    .replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, "")
-    .replace(/\x1bP[\s\S]*?\x1b\\/g, "")
-    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
-    .replace(/\x1b[()][AB012]/g, "")
-    .replace(/\x1b[=>]/g, "")
-    .replace(/[\x00-\x07\x0b\x0e-\x1f]/g, "");
-
-  return { clearBeforeAppend, text };
-}
-
-function replaceCurrentLine(output: string, value: string) {
-  const lineBreakIndex = output.lastIndexOf("\n");
-  if (lineBreakIndex === -1) return value;
-  return `${output.slice(0, lineBreakIndex + 1)}${value}`;
 }
