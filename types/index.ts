@@ -97,7 +97,7 @@ export interface SSHHostData {
   pin?: boolean;
   authType: "password" | "key" | "credential" | "none";
   password?: string;
-  key?: File | null;
+  key?: File | string | null;
   keyPassword?: string;
   keyType?: string;
   sudoPassword?: string;

@@ -29,7 +29,12 @@ import {
   Server as ServerIcon,
   ShieldCheck,
   User,
+  WifiOff,
 } from "lucide-react-native";
+import {
+  getRememberedUsername,
+  saveRememberedUsername,
+} from "@/app/offline-storage";
 
 function normalizeServerUrl(value: string): string {
   const trimmed = value.trim();
@@ -61,6 +66,7 @@ function getErrorMessage(error: unknown): string {
 export default function LoginForm() {
   const {
     setAuthenticated,
+    setOfflineMode,
     setShowLoginForm,
     selectedServer,
     setSelectedServer,
@@ -81,6 +87,11 @@ export default function LoginForm() {
       const serverUrl = getCurrentServerUrl() || selectedServer?.ip || "";
       if (mounted) {
         setServerAddress(serverUrl);
+      }
+
+      const rememberedUsername = await getRememberedUsername(serverUrl);
+      if (mounted && rememberedUsername) {
+        setUsername(rememberedUsername);
       }
 
       const existingToken = await getCookie("jwt");
@@ -117,6 +128,7 @@ export default function LoginForm() {
 
   const completeLogin = async (serverUrl: string) => {
     await initializeServerConfig();
+    await saveRememberedUsername(username, serverUrl);
     setSelectedServer({
       name: "Server",
       ip: serverUrl,
@@ -165,6 +177,17 @@ export default function LoginForm() {
     }
 
     await completeLogin(serverUrl);
+  };
+
+  const handleOfflineMode = async () => {
+    await clearAuth();
+    await setOfflineMode(true);
+    setSelectedServer({
+      name: "Offline",
+      ip: "local",
+    });
+    setAuthenticated(false);
+    setShowLoginForm(false);
   };
 
   const handleTotpLogin = async (serverUrl: string) => {
@@ -402,6 +425,19 @@ export default function LoginForm() {
             >
               <Text className="text-center text-sm font-medium text-[#5f5f5d]">
                 Use a different password
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {!pendingTotpToken ? (
+            <TouchableOpacity
+              onPress={handleOfflineMode}
+              disabled={isSubmitting}
+              className="mt-4 flex-row items-center justify-center rounded-xl border border-[#1c1c1c66] bg-[#f7f4ed] px-6 py-4"
+            >
+              <WifiOff size={19} color="#1c1c1c" />
+              <Text className="ml-2 text-center text-base font-semibold text-[#1c1c1c]">
+                Continue offline
               </Text>
             </TouchableOpacity>
           ) : null}

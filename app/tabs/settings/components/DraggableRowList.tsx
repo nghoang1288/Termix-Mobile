@@ -1,8 +1,14 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Switch } from "react-native";
+import { ChevronDown, ChevronRight, GripVertical } from "lucide-react-native";
+
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 import { KeyboardRow, KeyConfig } from "@/types/keyboard";
-import { renderKeyItem } from "./DraggableKeyList";
-import { GripVertical } from "lucide-react-native";
 
 interface RenderRowItemProps {
   item: KeyboardRow;
@@ -21,9 +27,6 @@ export function renderRowItem({
   drag,
   isActive,
   onToggleVisibility,
-  onRemoveKey,
-  onReorderKeys,
-  onAddKeyToRow,
   expandedRowId,
   onToggleExpand,
 }: RenderRowItemProps) {
@@ -31,7 +34,12 @@ export function renderRowItem({
 
   return (
     <View
-      className={`bg-[#1a1a1a] border border-[#303032] rounded-lg ${isExpanded ? "mb-0 rounded-b-none" : "mb-3"}`}
+      className={`border ${isExpanded ? "mb-0 rounded-b-none" : "mb-3"}`}
+      style={{
+        backgroundColor: BACKGROUNDS.CARD,
+        borderColor: BORDER_COLORS.SECONDARY,
+        borderRadius: RADIUS.CARD,
+      }}
     >
       <View className="flex-row items-center p-3">
         <TouchableOpacity
@@ -39,23 +47,13 @@ export function renderRowItem({
           delayLongPress={200}
           disabled={isActive}
           activeOpacity={0.7}
-          className="mr-2"
+          className="mr-2 items-center justify-center"
           style={{
             width: 40,
             height: 40,
-            justifyContent: "center",
-            alignItems: "center",
           }}
         >
-          <Text
-            style={{
-              fontSize: 20,
-              color: "#9CA3AF",
-              lineHeight: 20,
-            }}
-          >
-            <GripVertical color={"#D3D3D3"} />
-          </Text>
+          <GripVertical color={TEXT_COLORS.TERTIARY} size={20} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -65,25 +63,35 @@ export function renderRowItem({
           activeOpacity={0.6}
         >
           <View className="flex-1">
-            <Text className="text-white text-base font-semibold">
+            <Text
+              className="text-base font-semibold"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
               {item.label}
             </Text>
-            <Text className="text-gray-400 text-xs mt-0.5">
-              {item.keys.length} keys • {item.category}
+            <Text
+              className="mt-0.5 text-xs"
+              style={{ color: TEXT_COLORS.TERTIARY }}
+            >
+              {item.keys.length} keys / {item.category}
             </Text>
           </View>
 
-          <Text className="text-gray-400 text-base ml-3">
-            {isExpanded ? "▼" : "▶"}
-          </Text>
+          <View className="ml-3">
+            {isExpanded ? (
+              <ChevronDown color={TEXT_COLORS.TERTIARY} size={18} />
+            ) : (
+              <ChevronRight color={TEXT_COLORS.TERTIARY} size={18} />
+            )}
+          </View>
         </TouchableOpacity>
 
-        <View className="ml-3" style={{ justifyContent: "center" }}>
+        <View className="ml-3 justify-center">
           <Switch
             value={item.visible}
             onValueChange={() => onToggleVisibility(item.id)}
-            trackColor={{ false: "#3f3f46", true: "#22C55E" }}
-            thumbColor={item.visible ? "#ffffff" : "#9ca3af"}
+            trackColor={{ false: "#e4e0d6", true: "#1c1c1c" }}
+            thumbColor={item.visible ? "#fcfbf8" : "#9f9b91"}
           />
         </View>
       </View>

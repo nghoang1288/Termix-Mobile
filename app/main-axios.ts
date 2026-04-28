@@ -34,6 +34,16 @@ import {
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
+import {
+  cacheOnlineHosts,
+  createOfflineHost,
+  deleteOfflineHost,
+  getOfflineFoldersWithStats,
+  getOfflineHostById,
+  getOfflineHosts,
+  isOfflineModeEnabled,
+  updateOfflineHost,
+} from "./offline-storage";
 
 const platform = Platform;
 
@@ -659,15 +669,30 @@ function handleApiError(error: unknown, operation: string): never {
 // ============================================================================
 
 export async function getSSHHosts(): Promise<SSHHost[]> {
+  if (await isOfflineModeEnabled()) {
+    return getOfflineHosts();
+  }
+
   try {
     const response = await sshHostApi.get("/db/host");
+    if (Array.isArray(response.data)) {
+      await cacheOnlineHosts(response.data);
+    }
     return response.data;
   } catch (error) {
+    const offlineHosts = await getOfflineHosts();
+    if (offlineHosts.length > 0) {
+      return offlineHosts;
+    }
     handleApiError(error, "fetch SSH hosts");
   }
 }
 
 export async function createSSHHost(hostData: SSHHostData): Promise<SSHHost> {
+  if (await isOfflineModeEnabled()) {
+    return createOfflineHost(hostData);
+  }
+
   try {
     const submitData = {
       connectionType: hostData.connectionType || "ssh",
@@ -752,6 +777,10 @@ export async function updateSSHHost(
   hostId: number,
   hostData: SSHHostData,
 ): Promise<SSHHost> {
+  if ((await isOfflineModeEnabled()) || hostId < 0) {
+    return updateOfflineHost(hostId, hostData);
+  }
+
   try {
     const submitData = {
       connectionType: hostData.connectionType || "ssh",
@@ -846,6 +875,11 @@ export async function bulkImportSSHHosts(hosts: SSHHostData[]): Promise<{
 }
 
 export async function deleteSSHHost(hostId: number): Promise<any> {
+  if ((await isOfflineModeEnabled()) || hostId < 0) {
+    await deleteOfflineHost(hostId);
+    return { success: true };
+  }
+
   try {
     const response = await sshHostApi.delete(`/db/host/${hostId}`);
     return response.data;
@@ -855,10 +889,17 @@ export async function deleteSSHHost(hostId: number): Promise<any> {
 }
 
 export async function getSSHHostById(hostId: number): Promise<SSHHost> {
+  if ((await isOfflineModeEnabled()) || hostId < 0) {
+    return getOfflineHostById(hostId);
+  }
+
   try {
     const response = await sshHostApi.get(`/db/host/${hostId}`);
     return response.data;
   } catch (error) {
+    try {
+      return await getOfflineHostById(hostId);
+    } catch {}
     handleApiError(error, "fetch SSH host");
   }
 }
@@ -866,10 +907,17 @@ export async function getSSHHostById(hostId: number): Promise<SSHHost> {
 export async function exportSSHHostWithCredentials(
   hostId: number,
 ): Promise<SSHHost> {
+  if ((await isOfflineModeEnabled()) || hostId < 0) {
+    return getOfflineHostById(hostId);
+  }
+
   try {
     const response = await sshHostApi.get(`/db/host/${hostId}/export`);
     return response.data;
   } catch (error) {
+    try {
+      return await getOfflineHostById(hostId);
+    } catch {}
     handleApiError(error, "export SSH host with credentials");
   }
 }
@@ -1716,6 +1764,10 @@ export async function removeFolderShortcut(
 export async function getAllServerStatuses(): Promise<
   Record<number, ServerStatus>
 > {
+  if (await isOfflineModeEnabled()) {
+    return {};
+  }
+
   try {
     const response = await statsApi.get("/status", { timeout: 4500 });
     return response.data || {};
@@ -1738,6 +1790,13 @@ export async function getAllServerStatuses(): Promise<
 }
 
 export async function getServerStatusById(id: number): Promise<ServerStatus> {
+  if (await isOfflineModeEnabled()) {
+    return {
+      status: "offline",
+      lastChecked: new Date().toISOString(),
+    } as ServerStatus;
+  }
+
   try {
     const response = await statsApi.get(`/status/${id}`, { timeout: 4500 });
     return response.data;
@@ -1781,6 +1840,10 @@ export async function getServerMetricsById(id: number): Promise<ServerMetrics> {
 }
 
 export async function refreshServerPolling(): Promise<void> {
+  if (await isOfflineModeEnabled()) {
+    return;
+  }
+
   try {
     await statsApi.post("/refresh", undefined, { timeout: 5000 });
   } catch (error) {
@@ -2556,10 +2619,17 @@ export async function getCredentialFolders(): Promise<any> {
 
 // Get SSH host with resolved credentials
 export async function getSSHHostWithCredentials(hostId: number): Promise<any> {
+  if ((await isOfflineModeEnabled()) || hostId < 0) {
+    return getOfflineHostById(hostId);
+  }
+
   try {
     const response = await sshHostApi.get(`/db/host/${hostId}/export`);
     return response.data;
   } catch (error) {
+    try {
+      return await getOfflineHostById(hostId);
+    } catch {}
     handleApiError(error, "fetch SSH host with credentials");
   }
 }
@@ -2677,6 +2747,10 @@ export function sendTerminalResize(
 // ============================================================================
 
 export async function getFoldersWithStats(): Promise<any> {
+  if (await isOfflineModeEnabled()) {
+    return getOfflineFoldersWithStats();
+  }
+
   try {
     const token = await getCookie("jwt");
 
@@ -2712,7 +2786,7 @@ export async function getFoldersWithStats(): Promise<any> {
     }
     return data || [];
   } catch (error) {
-    return [];
+    return getOfflineFoldersWithStats();
   }
 }
 

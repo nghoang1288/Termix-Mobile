@@ -23,8 +23,13 @@ import { getResponsivePadding } from "@/app/utils/responsive";
 export default function Settings() {
   const router = useRouter();
   const { isLandscape } = useOrientation();
-  const { setAuthenticated, setShowLoginForm, setShowServerManager } =
-    useAppContext();
+  const {
+    isOfflineMode,
+    setAuthenticated,
+    setOfflineMode,
+    setShowLoginForm,
+    setShowServerManager,
+  } = useAppContext();
   const { clearAllSessions } = useTerminalSessions();
   const insets = useSafeAreaInsets();
   const [terminalConnectionMode, setLocalTerminalConnectionMode] =
@@ -54,7 +59,11 @@ export default function Settings() {
 
   const handleLogout = async () => {
     try {
-      await logoutUser();
+      if (isOfflineMode) {
+        await setOfflineMode(false);
+      } else {
+        await logoutUser();
+      }
 
       await clearAuth();
 
@@ -211,11 +220,23 @@ export default function Settings() {
           <Text className="mb-3 text-lg font-semibold text-[#1c1c1c]">
             Account
           </Text>
+          {isOfflineMode ? (
+            <View className="mb-3 rounded-lg border border-[#eceae4] bg-[#fcfbf8] px-4 py-3">
+              <Text className="text-base font-semibold text-[#1c1c1c]">
+                Offline mode
+              </Text>
+              <Text className="mt-1 text-sm text-[#5f5f5d]">
+                Server data is stored on this device. Login is not required.
+              </Text>
+            </View>
+          ) : null}
           <TouchableOpacity
             onPress={handleLogout}
             className="bg-red-600 px-6 py-3 rounded-lg"
           >
-            <Text className="text-white font-semibold">Logout</Text>
+            <Text className="text-white font-semibold">
+              {isOfflineMode ? "Exit offline mode" : "Logout"}
+            </Text>
           </TouchableOpacity>
 
           <Text className="mt-3 text-sm text-[#5f5f5d]">

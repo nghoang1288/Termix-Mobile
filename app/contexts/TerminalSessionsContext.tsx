@@ -63,7 +63,7 @@ interface TerminalSessionsProviderProps {
 export const TerminalSessionsProvider: React.FC<
   TerminalSessionsProviderProps
 > = ({ children }) => {
-  const { isAuthenticated } = useAppContext();
+  const { isAuthenticated, isOfflineMode } = useAppContext();
   const [sessions, setSessions] = useState<TerminalSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isCustomKeyboardVisible, setIsCustomKeyboardVisible] = useState(false);
@@ -237,10 +237,10 @@ export const TerminalSessionsProvider: React.FC<
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isOfflineMode) {
       clearAllSessions();
     }
-  }, [isAuthenticated, clearAllSessions]);
+  }, [isAuthenticated, isOfflineMode, clearAllSessions]);
 
   return (
     <TerminalSessionsContext.Provider

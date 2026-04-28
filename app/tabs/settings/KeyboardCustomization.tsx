@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,14 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ArrowLeft, RotateCcw } from "lucide-react-native";
+
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 import { useKeyboardCustomization } from "@/app/contexts/KeyboardCustomizationContext";
 import { PRESET_DEFINITIONS } from "@/app/tabs/sessions/terminal/keyboard/KeyDefinitions";
 import { PresetType, KeyConfig } from "@/types/keyboard";
@@ -23,6 +31,13 @@ import { renderRowItem, useRowExpansion } from "./components/DraggableRowList";
 
 type TabType = "presets" | "topbar" | "fullKeyboard" | "settings";
 type AddKeyMode = "pinned" | "topbar" | "row" | null;
+
+const TABS: { id: TabType; label: string }[] = [
+  { id: "presets", label: "Presets" },
+  { id: "topbar", label: "Top Bar" },
+  { id: "fullKeyboard", label: "Full Keyboard" },
+  { id: "settings", label: "Settings" },
+];
 
 export default function KeyboardCustomization() {
   const router = useRouter();
@@ -88,7 +103,7 @@ export default function KeyboardCustomization() {
       type: "header",
       id: "header-topbar",
       title: "Top Bar Keys",
-      subtitle: "Keys shown in the top bar",
+      subtitle: "Keys shown in the terminal top bar",
       onAddPress: () => openKeySelector("topbar"),
       addButtonLabel: "+ Add",
     });
@@ -199,7 +214,7 @@ export default function KeyboardCustomization() {
       showToast.success(
         `Switched to ${PRESET_DEFINITIONS.find((p) => p.id === presetId)?.name} preset`,
       );
-    } catch (error) {
+    } catch {
       showToast.error("Failed to switch preset");
     }
   };
@@ -216,7 +231,7 @@ export default function KeyboardCustomization() {
         await addKeyToRow(selectedRowId, key);
         showToast.success(`Added ${key.label} to row`);
       }
-    } catch (error) {
+    } catch {
       showToast.error("Failed to add key");
     }
   };
@@ -229,30 +244,18 @@ export default function KeyboardCustomization() {
 
   const getExcludedKeys = (): string[] => {
     if (addKeyMode === "pinned") {
-      return config.topBar.pinnedKeys.map((k) => k.id);
-    } else if (addKeyMode === "topbar") {
-      return config.topBar.keys.map((k) => k.id);
-    } else if (addKeyMode === "row" && selectedRowId) {
-      const row = config.fullKeyboard.rows.find((r) => r.id === selectedRowId);
-      return row ? row.keys.map((k) => k.id) : [];
+      return config.topBar.pinnedKeys.map((key) => key.id);
+    }
+    if (addKeyMode === "topbar") {
+      return config.topBar.keys.map((key) => key.id);
+    }
+    if (addKeyMode === "row" && selectedRowId) {
+      const row = config.fullKeyboard.rows.find(
+        (item) => item.id === selectedRowId,
+      );
+      return row ? row.keys.map((key) => key.id) : [];
     }
     return [];
-  };
-
-  const handleKeySizeChange = async (size: "small" | "medium" | "large") => {
-    await updateSettings({ keySize: size });
-  };
-
-  const handleCompactModeToggle = async (value: boolean) => {
-    await updateSettings({ compactMode: value });
-  };
-
-  const handleHapticToggle = async (value: boolean) => {
-    await updateSettings({ hapticFeedback: value });
-  };
-
-  const handleHintsToggle = async (value: boolean) => {
-    await updateSettings({ showHints: value });
   };
 
   const handleReset = async () => {
@@ -268,51 +271,80 @@ export default function KeyboardCustomization() {
         showToast.success("Full keyboard reset to default");
       }
       setShowResetConfirm(false);
-    } catch (error) {
+    } catch {
       showToast.error("Failed to reset");
     }
   };
 
   const renderPresets = () => (
-    <ScrollView className="flex-1 px-4 py-4">
-      <Text className="text-white text-lg font-semibold mb-2">
+    <ScrollView
+      className="flex-1 px-4 py-4"
+      showsVerticalScrollIndicator={false}
+    >
+      <Text
+        className="mb-2 text-lg font-semibold"
+        style={{ color: TEXT_COLORS.PRIMARY }}
+      >
         Keyboard Presets
       </Text>
-      <Text className="text-gray-400 text-sm mb-4">
-        Choose a preset layout optimized for different use cases
+      <Text className="mb-4 text-sm" style={{ color: TEXT_COLORS.TERTIARY }}>
+        Choose a preset layout optimized for different terminal workflows.
       </Text>
 
-      {PRESET_DEFINITIONS.map((preset) => (
-        <TouchableOpacity
-          key={preset.id}
-          onPress={() => handlePresetSelect(preset.id)}
-          className={`mb-3 p-4 rounded-lg border ${
-            config.preset === preset.id
-              ? "bg-green-900/20 border-green-500"
-              : "bg-[#1a1a1a] border-[#303032]"
-          }`}
-        >
-          <View className="flex-row items-center justify-between mb-1">
-            <Text className="text-white text-base font-semibold">
-              {preset.name}
+      {PRESET_DEFINITIONS.map((preset) => {
+        const active = config.preset === preset.id;
+        return (
+          <TouchableOpacity
+            key={preset.id}
+            onPress={() => handlePresetSelect(preset.id)}
+            className="mb-3 border p-4"
+            activeOpacity={0.75}
+            style={{
+              backgroundColor: active ? BACKGROUNDS.ACTIVE : BACKGROUNDS.CARD,
+              borderColor: active
+                ? BORDER_COLORS.ACTIVE
+                : BORDER_COLORS.SECONDARY,
+              borderRadius: RADIUS.CARD,
+            }}
+          >
+            <View className="mb-1 flex-row items-center justify-between">
+              <Text
+                className="text-base font-semibold"
+                style={{ color: active ? "#fcfbf8" : TEXT_COLORS.PRIMARY }}
+              >
+                {preset.name}
+              </Text>
+              {active && (
+                <View className="rounded-full bg-[#fcfbf8] px-2 py-1">
+                  <Text className="text-xs font-semibold text-[#1c1c1c]">
+                    ACTIVE
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text
+              className="text-sm"
+              style={{ color: active ? "#ded8c9" : TEXT_COLORS.SECONDARY }}
+            >
+              {preset.description}
             </Text>
-            {config.preset === preset.id && (
-              <View className="bg-green-500 rounded-full px-2 py-1">
-                <Text className="text-white text-xs font-semibold">ACTIVE</Text>
-              </View>
-            )}
-          </View>
-          <Text className="text-gray-400 text-sm">{preset.description}</Text>
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        );
+      })}
 
       {config.preset === "custom" && (
-        <View className="mt-2 p-4 bg-blue-900/20 border border-blue-500 rounded-lg">
-          <Text className="text-blue-400 text-sm font-semibold mb-1">
+        <View
+          className="mt-2 rounded-lg border p-4"
+          style={{
+            backgroundColor: "rgba(59,130,246,0.08)",
+            borderColor: "rgba(59,130,246,0.28)",
+          }}
+        >
+          <Text className="mb-1 text-sm font-semibold text-[#2563eb]">
             Custom Layout
           </Text>
-          <Text className="text-gray-400 text-xs">
-            You've made custom changes. Select a preset above to reset to a
+          <Text className="text-xs" style={{ color: TEXT_COLORS.SECONDARY }}>
+            You have made custom changes. Select a preset above to reset to a
             predefined layout.
           </Text>
         </View>
@@ -331,28 +363,17 @@ export default function KeyboardCustomization() {
       (item) => item.type === "button" && item.id === "reset-topbar",
     );
 
-    for (let i = 0; i <= pinnedHeaderIndex; i++) {
-      const item = newData[i];
-      if (item.type === "draggable-key") {
-        return false;
-      }
+    for (let i = 0; i <= pinnedHeaderIndex; i += 1) {
+      if (newData[i].type === "draggable-key") return false;
     }
 
-    for (let i = 0; i < newData.length; i++) {
+    for (let i = 0; i < newData.length; i += 1) {
       const item = newData[i];
       if (item.type === "draggable-key" && item.section === "pinned") {
-        if (i <= pinnedHeaderIndex || i >= topbarHeaderIndex) {
-          return false;
-        }
+        if (i <= pinnedHeaderIndex || i >= topbarHeaderIndex) return false;
       }
-    }
-
-    for (let i = 0; i < newData.length; i++) {
-      const item = newData[i];
       if (item.type === "draggable-key" && item.section === "topbar") {
-        if (i <= topbarHeaderIndex || i >= resetButtonIndex) {
-          return false;
-        }
+        if (i <= topbarHeaderIndex || i >= resetButtonIndex) return false;
       }
     }
 
@@ -404,57 +425,49 @@ export default function KeyboardCustomization() {
     const mainHeaderIndex = newData.findIndex(
       (item) => item.type === "header" && item.id === "header-rows",
     );
-
     const resetButtonIndex = newData.findIndex(
       (item) => item.type === "button" && item.id === "reset-fullkeyboard",
     );
 
-    for (let i = 0; i <= mainHeaderIndex; i++) {
+    for (let i = 0; i <= mainHeaderIndex; i += 1) {
       const item = newData[i];
       if (item.type === "draggable-key" || item.type === "draggable-row") {
         return false;
       }
     }
 
-    for (let i = resetButtonIndex; i < newData.length; i++) {
+    for (let i = resetButtonIndex; i < newData.length; i += 1) {
       const item = newData[i];
       if (item.type === "draggable-key" || item.type === "draggable-row") {
         return false;
       }
     }
 
-    if (!expandedRowId) {
-      return true;
-    }
+    if (!expandedRowId) return true;
 
     const rowKeysHeaderIndex = newData.findIndex(
       (item) =>
         item.type === "row-keys-header" &&
         (item as any).rowId === expandedRowId,
     );
-
     const rowCloseIndex = newData.findIndex(
       (item) =>
         item.type === "spacer" && item.id === `row-close-${expandedRowId}`,
     );
 
-    if (rowKeysHeaderIndex === -1 || rowCloseIndex === -1) {
-      return true;
-    }
+    if (rowKeysHeaderIndex === -1 || rowCloseIndex === -1) return true;
 
-    for (let i = 0; i < newData.length; i++) {
+    for (let i = 0; i < newData.length; i += 1) {
       const item = newData[i];
       if (
         item.type === "draggable-key" &&
         (item as any).rowId === expandedRowId
       ) {
-        if (i <= rowKeysHeaderIndex || i >= rowCloseIndex) {
-          return false;
-        }
+        if (i <= rowKeysHeaderIndex || i >= rowCloseIndex) return false;
       }
     }
 
-    for (let i = rowKeysHeaderIndex + 1; i < rowCloseIndex; i++) {
+    for (let i = rowKeysHeaderIndex + 1; i < rowCloseIndex; i += 1) {
       const item = newData[i];
       if (
         item.type === "draggable-key" &&
@@ -462,9 +475,7 @@ export default function KeyboardCustomization() {
       ) {
         return false;
       }
-      if (item.type === "draggable-row") {
-        return false;
-      }
+      if (item.type === "draggable-row") return false;
     }
 
     return true;
@@ -503,11 +514,7 @@ export default function KeyboardCustomization() {
         onRemoveKey={(itemId, section) => {
           if (section === "row") {
             const match = itemId.match(/^row-(.+)-key-(.+)$/);
-            if (match) {
-              const rowId = match[1];
-              const keyId = match[2];
-              removeKeyFromRow(rowId, keyId);
-            }
+            if (match) removeKeyFromRow(match[1], match[2]);
           }
         }}
       />
@@ -515,98 +522,123 @@ export default function KeyboardCustomization() {
   );
 
   const renderSettings = () => (
-    <ScrollView className="flex-1 px-4 py-4">
-      <Text className="text-white text-lg font-semibold mb-2">
+    <ScrollView
+      className="flex-1 px-4 py-4"
+      showsVerticalScrollIndicator={false}
+    >
+      <Text
+        className="mb-2 text-lg font-semibold"
+        style={{ color: TEXT_COLORS.PRIMARY }}
+      >
         Keyboard Settings
       </Text>
-      <Text className="text-gray-400 text-sm mb-4">
-        Adjust keyboard appearance and behavior
+      <Text className="mb-4 text-sm" style={{ color: TEXT_COLORS.TERTIARY }}>
+        Adjust keyboard appearance and behavior.
       </Text>
 
       <View className="mb-6">
-        <Text className="text-white text-base font-semibold mb-3">
+        <Text
+          className="mb-3 text-base font-semibold"
+          style={{ color: TEXT_COLORS.PRIMARY }}
+        >
           Key Size
         </Text>
         <View className="flex-row gap-2">
-          {(["small", "medium", "large"] as const).map((size) => (
-            <TouchableOpacity
-              key={size}
-              onPress={() => handleKeySizeChange(size)}
-              className={`flex-1 p-3 rounded-lg border ${
-                config.settings.keySize === size
-                  ? "bg-green-900/20 border-green-500"
-                  : "bg-[#1a1a1a] border-[#303032]"
-              }`}
-            >
-              <Text
-                className={`text-center font-semibold ${
-                  config.settings.keySize === size
-                    ? "text-green-400"
-                    : "text-gray-400"
-                }`}
+          {(["small", "medium", "large"] as const).map((size) => {
+            const active = config.settings.keySize === size;
+            return (
+              <TouchableOpacity
+                key={size}
+                onPress={() => updateSettings({ keySize: size })}
+                className="flex-1 rounded-lg border p-3"
+                activeOpacity={0.75}
+                style={{
+                  backgroundColor: active
+                    ? BACKGROUNDS.ACTIVE
+                    : BACKGROUNDS.CARD,
+                  borderColor: active
+                    ? BORDER_COLORS.ACTIVE
+                    : BORDER_COLORS.SECONDARY,
+                }}
               >
-                {size.charAt(0).toUpperCase() + size.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  className="text-center font-semibold"
+                  style={{ color: active ? "#fcfbf8" : TEXT_COLORS.SECONDARY }}
+                >
+                  {size.charAt(0).toUpperCase() + size.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
-      <View className="flex-row items-center justify-between bg-[#1a1a1a] border border-[#303032] rounded-lg p-4 mb-3">
-        <View className="flex-1 mr-4">
-          <Text className="text-white text-sm font-semibold">Compact Mode</Text>
-          <Text className="text-gray-400 text-xs mt-0.5">
-            Tighter spacing for more keys on screen
-          </Text>
+      {[
+        {
+          title: "Compact Mode",
+          subtitle: "Tighter spacing for more keys on screen",
+          value: config.settings.compactMode,
+          onChange: (value: boolean) => updateSettings({ compactMode: value }),
+        },
+        {
+          title: "Haptic Feedback",
+          subtitle: "Vibrate on key press",
+          value: config.settings.hapticFeedback,
+          onChange: (value: boolean) =>
+            updateSettings({ hapticFeedback: value }),
+        },
+        {
+          title: "Show Hints",
+          subtitle: 'Display "Customize in Settings" hint',
+          value: config.settings.showHints,
+          onChange: (value: boolean) => updateSettings({ showHints: value }),
+        },
+      ].map((item, index) => (
+        <View
+          key={item.title}
+          className="mb-3 flex-row items-center justify-between rounded-lg border p-4"
+          style={{
+            backgroundColor: BACKGROUNDS.CARD,
+            borderColor: BORDER_COLORS.SECONDARY,
+            marginBottom: index === 2 ? 24 : 12,
+          }}
+        >
+          <View className="mr-4 flex-1">
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
+              {item.title}
+            </Text>
+            <Text
+              className="mt-0.5 text-xs"
+              style={{ color: TEXT_COLORS.TERTIARY }}
+            >
+              {item.subtitle}
+            </Text>
+          </View>
+          <Switch
+            value={item.value}
+            onValueChange={item.onChange}
+            trackColor={{ false: "#e4e0d6", true: "#1c1c1c" }}
+            thumbColor={item.value ? "#fcfbf8" : "#9f9b91"}
+          />
         </View>
-        <Switch
-          value={config.settings.compactMode}
-          onValueChange={handleCompactModeToggle}
-          trackColor={{ false: "#3f3f46", true: "#22C55E" }}
-          thumbColor={config.settings.compactMode ? "#ffffff" : "#9ca3af"}
-        />
-      </View>
-
-      <View className="flex-row items-center justify-between bg-[#1a1a1a] border border-[#303032] rounded-lg p-4 mb-3">
-        <View className="flex-1 mr-4">
-          <Text className="text-white text-sm font-semibold">
-            Haptic Feedback
-          </Text>
-          <Text className="text-gray-400 text-xs mt-0.5">
-            Vibrate on key press
-          </Text>
-        </View>
-        <Switch
-          value={config.settings.hapticFeedback}
-          onValueChange={handleHapticToggle}
-          trackColor={{ false: "#3f3f46", true: "#22C55E" }}
-          thumbColor={config.settings.hapticFeedback ? "#ffffff" : "#9ca3af"}
-        />
-      </View>
-
-      <View className="flex-row items-center justify-between bg-[#1a1a1a] border border-[#303032] rounded-lg p-4 mb-6">
-        <View className="flex-1 mr-4">
-          <Text className="text-white text-sm font-semibold">Show Hints</Text>
-          <Text className="text-gray-400 text-xs mt-0.5">
-            Display "Customize in Settings" hint
-          </Text>
-        </View>
-        <Switch
-          value={config.settings.showHints}
-          onValueChange={handleHintsToggle}
-          trackColor={{ false: "#3f3f46", true: "#22C55E" }}
-          thumbColor={config.settings.showHints ? "#ffffff" : "#9ca3af"}
-        />
-      </View>
+      ))}
 
       <TouchableOpacity
         onPress={() => {
           setResetType("all");
           setShowResetConfirm(true);
         }}
-        className="bg-red-900/20 border border-red-700 rounded-lg p-3"
+        className="rounded-lg border p-3"
+        activeOpacity={0.75}
+        style={{
+          backgroundColor: "rgba(239,68,68,0.08)",
+          borderColor: "rgba(239,68,68,0.3)",
+        }}
       >
-        <Text className="text-red-400 text-center font-semibold">
+        <Text className="text-center font-semibold text-[#dc2626]">
           Reset Everything to Default
         </Text>
       </TouchableOpacity>
@@ -614,49 +646,89 @@ export default function KeyboardCustomization() {
   );
 
   return (
-    <View className="flex-1 bg-[#18181b]">
+    <View className="flex-1" style={{ backgroundColor: BACKGROUNDS.DARK }}>
       <View
-        className="bg-[#1a1a1a] border-b border-[#303032] px-4"
-        style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
+        className="border-b px-4"
+        style={{
+          paddingTop: insets.top + 12,
+          paddingBottom: 12,
+          backgroundColor: BACKGROUNDS.HEADER,
+          borderBottomColor: BORDER_COLORS.SECONDARY,
+        }}
       >
         <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-green-500 text-base font-semibold">
-              ← Back
-            </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="items-center justify-center rounded-md border"
+            style={{
+              width: 40,
+              height: 40,
+              backgroundColor: BACKGROUNDS.BUTTON,
+              borderColor: BORDER_COLORS.BUTTON,
+            }}
+          >
+            <ArrowLeft color={TEXT_COLORS.PRIMARY} size={19} />
           </TouchableOpacity>
-          <Text className="text-white text-lg font-semibold">
+          <Text
+            className="text-lg font-semibold"
+            style={{ color: TEXT_COLORS.PRIMARY }}
+          >
             Keyboard Customization
           </Text>
-          <View style={{ width: 60 }} />
+          <TouchableOpacity
+            onPress={() => {
+              setResetType("all");
+              setShowResetConfirm(true);
+            }}
+            className="items-center justify-center rounded-md border"
+            style={{
+              width: 40,
+              height: 40,
+              backgroundColor: BACKGROUNDS.BUTTON,
+              borderColor: BORDER_COLORS.BUTTON,
+            }}
+          >
+            <RotateCcw color={TEXT_COLORS.PRIMARY} size={17} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      <View className="bg-[#1a1a1a] border-b border-[#303032]">
-        <View className="flex-row px-4">
-          {[
-            { id: "presets", label: "Presets" },
-            { id: "topbar", label: "Top Bar" },
-            { id: "fullKeyboard", label: "Full Keyboard" },
-            { id: "settings", label: "Settings" },
-          ].map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              onPress={() => setActiveTab(tab.id as TabType)}
-              className={`px-4 py-3 mr-2 ${
-                activeTab === tab.id ? "border-b-2 border-green-500" : ""
-              }`}
-            >
-              <Text
-                className={`text-sm font-semibold ${
-                  activeTab === tab.id ? "text-green-500" : "text-gray-400"
-                }`}
+      <View
+        className="border-b"
+        style={{
+          backgroundColor: BACKGROUNDS.DARK,
+          borderBottomColor: BORDER_COLORS.SECONDARY,
+        }}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16 }}
+        >
+          {TABS.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                onPress={() => setActiveTab(tab.id)}
+                className="mr-2 px-4 py-3"
+                style={{
+                  borderBottomWidth: active ? 2 : 0,
+                  borderBottomColor: TEXT_COLORS.PRIMARY,
+                }}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <Text
+                  className="text-sm font-semibold"
+                  style={{
+                    color: active ? TEXT_COLORS.PRIMARY : TEXT_COLORS.TERTIARY,
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {activeTab === "presets" && renderPresets()}
@@ -685,14 +757,27 @@ export default function KeyboardCustomization() {
         onRequestClose={() => setShowResetConfirm(false)}
       >
         <Pressable
-          className="flex-1 bg-black/50 justify-center items-center"
+          className="flex-1 items-center justify-center bg-black/45"
           onPress={() => setShowResetConfirm(false)}
         >
-          <Pressable className="bg-[#1a1a1a] rounded-lg p-6 mx-8 border border-[#303032]">
-            <Text className="text-white text-lg font-semibold mb-2">
+          <Pressable
+            className="mx-8 rounded-lg border p-6"
+            style={{
+              backgroundColor: BACKGROUNDS.CARD,
+              borderColor: BORDER_COLORS.SECONDARY,
+              borderRadius: RADIUS.LARGE,
+            }}
+          >
+            <Text
+              className="mb-2 text-lg font-semibold"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
               Confirm Reset
             </Text>
-            <Text className="text-gray-400 text-sm mb-6">
+            <Text
+              className="mb-6 text-sm"
+              style={{ color: TEXT_COLORS.SECONDARY }}
+            >
               {resetType === "all"
                 ? "This will reset all keyboard customizations to default settings."
                 : resetType === "topbar"
@@ -702,17 +787,24 @@ export default function KeyboardCustomization() {
             <View className="flex-row gap-3">
               <TouchableOpacity
                 onPress={() => setShowResetConfirm(false)}
-                className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-lg p-3"
+                className="flex-1 rounded-lg border p-3"
+                style={{
+                  backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                  borderColor: BORDER_COLORS.SECONDARY,
+                }}
               >
-                <Text className="text-white text-center font-semibold">
+                <Text
+                  className="text-center font-semibold"
+                  style={{ color: TEXT_COLORS.PRIMARY }}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleReset}
-                className="flex-1 bg-red-600 rounded-lg p-3"
+                className="flex-1 rounded-lg bg-red-600 p-3"
               >
-                <Text className="text-white text-center font-semibold">
+                <Text className="text-center font-semibold text-white">
                   Reset
                 </Text>
               </TouchableOpacity>

@@ -1,7 +1,14 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
+import { GripVertical, X } from "lucide-react-native";
+
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 import { KeyConfig } from "@/types/keyboard";
-import { GripVertical } from "lucide-react-native";
 
 interface RenderKeyItemProps {
   item: KeyConfig;
@@ -17,32 +24,54 @@ export function renderKeyItem({
   isActive,
 }: RenderKeyItemProps) {
   return (
-    <View className="flex-row items-center bg-[#1a1a1a] border border-[#303032] rounded-lg p-3 mb-2">
+    <View
+      className="mb-2 flex-row items-center border p-3"
+      style={{
+        backgroundColor: BACKGROUNDS.CARD,
+        borderColor: BORDER_COLORS.SECONDARY,
+        borderRadius: RADIUS.CARD,
+      }}
+    >
       <TouchableOpacity
         onLongPress={drag}
         delayLongPress={200}
         disabled={isActive}
         activeOpacity={0.7}
-        className="mr-2"
+        className="mr-2 items-center justify-center"
         style={{
           width: 40,
           height: 40,
-          justifyContent: "center",
-          alignItems: "center",
         }}
       >
-        <GripVertical color={"#D3D3D3"} />
+        <GripVertical color={TEXT_COLORS.TERTIARY} size={20} />
       </TouchableOpacity>
 
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
-          <View className="bg-[#27272a] border border-[#3f3f46] rounded px-3 py-1.5">
-            <Text className="text-white text-sm font-mono">{item.label}</Text>
+          <View
+            className="rounded border px-3 py-1.5"
+            style={{
+              backgroundColor: BACKGROUNDS.BUTTON_ALT,
+              borderColor: BORDER_COLORS.SECONDARY,
+            }}
+          >
+            <Text
+              className="font-mono text-sm"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
+              {item.label}
+            </Text>
           </View>
-          <Text className="text-gray-500 text-xs">{item.category}</Text>
+          <Text className="text-xs" style={{ color: TEXT_COLORS.TERTIARY }}>
+            {item.category}
+          </Text>
         </View>
         {item.description && (
-          <Text className="text-gray-400 text-xs mt-1" numberOfLines={1}>
+          <Text
+            className="mt-1 text-xs"
+            numberOfLines={1}
+            style={{ color: TEXT_COLORS.SECONDARY }}
+          >
             {item.description}
           </Text>
         )}
@@ -50,22 +79,17 @@ export function renderKeyItem({
 
       <TouchableOpacity
         onPress={onRemove}
-        className="bg-red-900/30 border border-red-700 rounded-full ml-2"
+        className="ml-2 items-center justify-center rounded-full border"
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         activeOpacity={0.6}
         style={{
           width: 32,
           height: 32,
-          justifyContent: "center",
-          alignItems: "center",
+          backgroundColor: "rgba(239,68,68,0.08)",
+          borderColor: "rgba(239,68,68,0.28)",
         }}
       >
-        <Text
-          className="text-red-400 font-bold"
-          style={{ fontSize: 18, lineHeight: 18 }}
-        >
-          ×
-        </Text>
+        <X color="#dc2626" size={16} />
       </TouchableOpacity>
     </View>
   );

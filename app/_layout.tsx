@@ -18,6 +18,7 @@ function RootLayoutContent() {
     showLoginForm,
     setShowLoginForm,
     isAuthenticated,
+    isOfflineMode,
     showUpdateScreen,
     isLoading,
   } = useAppContext();
@@ -65,7 +66,7 @@ function RootLayoutContent() {
     return <LoginForm />;
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated || isOfflineMode) {
     return (
       <View className="flex-1 bg-[#f7f4ed]">
         <Stack

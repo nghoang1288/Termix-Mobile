@@ -12,7 +12,15 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ArrowLeft, RotateCcw } from "lucide-react-native";
+
 import { useTerminalCustomization } from "@/app/contexts/TerminalCustomizationContext";
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 import { showToast } from "@/app/utils/toast";
 
 const FONT_SIZE_OPTIONS = [
@@ -40,7 +48,7 @@ export default function TerminalCustomization() {
     try {
       await updateFontSize(fontSize);
       showToast.success(`Font size updated to ${fontSize}px`);
-    } catch (error) {
+    } catch {
       showToast.error("Failed to update font size");
     }
   };
@@ -50,43 +58,116 @@ export default function TerminalCustomization() {
       await resetToDefault();
       showToast.success("Terminal settings reset to default");
       setShowResetConfirm(false);
-    } catch (error) {
+    } catch {
       showToast.error("Failed to reset settings");
     }
   };
 
   const handleCustomFontSize = async () => {
-    const fontSize = parseInt(customFontSize);
+    const fontSize = parseInt(customFontSize, 10);
     if (isNaN(fontSize) || fontSize <= 0) {
       showToast.error("Please enter a valid font size");
       return;
     }
+
     try {
       await updateFontSize(fontSize);
       showToast.success(`Font size updated to ${fontSize}px`);
       setShowCustomInput(false);
       setCustomFontSize("");
-    } catch (error) {
+    } catch {
       showToast.error("Failed to update font size");
     }
   };
 
-  return (
-    <View className="flex-1 bg-[#18181b]">
-      <View
-        className="bg-[#1a1a1a] border-b border-[#303032] px-4"
-        style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
+  const renderOption = (label: string, value: number, isCustom = false) => {
+    const active = isCustom ? isCustomFontSize : config.fontSize === value;
+
+    return (
+      <TouchableOpacity
+        key={isCustom ? "custom" : value}
+        onPress={() =>
+          isCustom ? setShowCustomInput(true) : handleFontSizeChange(value)
+        }
+        className="mb-2 rounded-lg border p-4"
+        activeOpacity={0.75}
+        style={{
+          backgroundColor: active ? BACKGROUNDS.ACTIVE : BACKGROUNDS.CARD,
+          borderColor: active ? BORDER_COLORS.ACTIVE : BORDER_COLORS.SECONDARY,
+          borderRadius: RADIUS.CARD,
+        }}
       >
         <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-green-500 text-base font-semibold">
-              ← Back
+          <View>
+            <Text
+              className="text-base font-semibold"
+              style={{
+                color: active ? "#fcfbf8" : TEXT_COLORS.PRIMARY,
+              }}
+            >
+              {label}
             </Text>
+            <Text
+              className="mt-1 text-xs"
+              style={{
+                color: active ? "#ded8c9" : TEXT_COLORS.TERTIARY,
+              }}
+            >
+              {isCustom && isCustomFontSize
+                ? `${config.fontSize}px base size`
+                : isCustom
+                  ? "Enter any custom size"
+                  : `${value}px base size`}
+            </Text>
+          </View>
+          {active ? (
+            <View className="rounded border border-[#fcfbf866] px-2 py-1">
+              <Text className="text-xs font-bold text-[#fcfbf8]">ACTIVE</Text>
+            </View>
+          ) : null}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View className="flex-1" style={{ backgroundColor: BACKGROUNDS.DARK }}>
+      <View
+        className="border-b px-4"
+        style={{
+          paddingTop: insets.top + 12,
+          paddingBottom: 12,
+          backgroundColor: BACKGROUNDS.HEADER,
+          borderColor: BORDER_COLORS.SECONDARY,
+        }}
+      >
+        <View className="flex-row items-center justify-between">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="h-10 w-10 items-center justify-center rounded-md border"
+            style={{
+              backgroundColor: BACKGROUNDS.BUTTON,
+              borderColor: BORDER_COLORS.BUTTON,
+            }}
+          >
+            <ArrowLeft size={19} color={TEXT_COLORS.PRIMARY} />
           </TouchableOpacity>
-          <Text className="text-white text-lg font-semibold">
-            Terminal Customization
+          <Text
+            className="text-lg font-semibold"
+            style={{ color: TEXT_COLORS.PRIMARY }}
+          >
+            Terminal
           </Text>
-          <View style={{ width: 60 }} />
+          <TouchableOpacity
+            onPress={() => setShowResetConfirm(true)}
+            className="h-10 w-10 items-center justify-center rounded-md border"
+            style={{
+              backgroundColor: BACKGROUNDS.BUTTON,
+              borderColor: BORDER_COLORS.BUTTON,
+            }}
+          >
+            <RotateCcw size={18} color="#dc2626" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -94,100 +175,36 @@ export default function TerminalCustomization() {
         className="flex-1 px-4 py-4"
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) }}
       >
-        <Text className="text-white text-lg font-semibold mb-2">
-          Terminal Settings
+        <Text
+          className="mb-2 text-lg font-semibold"
+          style={{ color: TEXT_COLORS.PRIMARY }}
+        >
+          Terminal settings
         </Text>
-        <Text className="text-gray-400 text-sm mb-4">
-          Customize terminal appearance and behavior
+        <Text className="mb-4 text-sm" style={{ color: TEXT_COLORS.TERTIARY }}>
+          Tune the terminal font size for mobile screens.
         </Text>
 
         <View className="mb-6">
-          <Text className="text-white text-base font-semibold mb-3">
-            Font Size
+          <Text
+            className="mb-3 text-base font-semibold"
+            style={{ color: TEXT_COLORS.PRIMARY }}
+          >
+            Font size
           </Text>
-          <Text className="text-gray-400 text-sm mb-3">
-            Base font size for terminal text. The actual size will be adjusted
-            based on your screen width. This number will override the font size
-            you configured on a host in the SSHBridge Web UI.
-          </Text>
-          <View className="gap-2">
-            {FONT_SIZE_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                onPress={() => handleFontSizeChange(option.value)}
-                className={`p-4 rounded-lg border ${
-                  config.fontSize === option.value
-                    ? "bg-green-900/20 border-green-500"
-                    : "bg-[#1a1a1a] border-[#303032]"
-                }`}
-              >
-                <View className="flex-row items-center justify-between">
-                  <View>
-                    <Text
-                      className={`text-base font-semibold ${
-                        config.fontSize === option.value
-                          ? "text-green-400"
-                          : "text-white"
-                      }`}
-                    >
-                      {option.label}
-                    </Text>
-                    <Text className="text-gray-400 text-xs mt-0.5">
-                      {option.value}px base size
-                    </Text>
-                  </View>
-                  {config.fontSize === option.value && (
-                    <View className="bg-green-500 rounded-full px-2 py-1">
-                      <Text className="text-white text-xs font-semibold">
-                        ACTIVE
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity
-              onPress={() => setShowCustomInput(true)}
-              className={`p-4 rounded-lg border ${
-                isCustomFontSize
-                  ? "bg-green-900/20 border-green-500"
-                  : "bg-[#1a1a1a] border-[#303032]"
-              }`}
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text
-                    className={`text-base font-semibold ${
-                      isCustomFontSize ? "text-green-400" : "text-white"
-                    }`}
-                  >
-                    Custom
-                  </Text>
-                  <Text className="text-gray-400 text-xs mt-0.5">
-                    {isCustomFontSize
-                      ? `${config.fontSize}px base size`
-                      : "Enter any custom size"}
-                  </Text>
-                </View>
-                {isCustomFontSize && (
-                  <View className="bg-green-500 rounded-full px-2 py-1">
-                    <Text className="text-white text-xs font-semibold">
-                      ACTIVE
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+          {FONT_SIZE_OPTIONS.map((option) =>
+            renderOption(option.label, option.value),
+          )}
+          {renderOption("Custom", config.fontSize ?? 16, true)}
         </View>
 
         <TouchableOpacity
           onPress={() => setShowResetConfirm(true)}
-          className="bg-red-900/20 border border-red-700 rounded-lg p-3"
+          className="rounded-lg border p-3"
+          style={{ backgroundColor: "#fff1f2", borderColor: "#fecdd3" }}
         >
-          <Text className="text-red-400 text-center font-semibold">
-            Reset to Default
+          <Text className="text-center font-semibold text-[#dc2626]">
+            Reset to default
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -207,54 +224,75 @@ export default function TerminalCustomization() {
           className="flex-1"
         >
           <Pressable
-            className="flex-1 bg-black/50 justify-center items-center"
+            className="flex-1 items-center justify-center px-8"
+            style={{ backgroundColor: "rgba(28,28,28,0.42)" }}
             onPress={() => {
               setShowCustomInput(false);
               setCustomFontSize("");
             }}
           >
-            <Pressable className="bg-[#1a1a1a] rounded-lg p-6 mx-8 border border-[#303032] w-80">
-              <Text className="text-white text-lg font-semibold mb-2">
-                Custom Font Size
+            <Pressable
+              className="w-full rounded-lg border p-6"
+              style={{
+                backgroundColor: BACKGROUNDS.CARD,
+                borderColor: BORDER_COLORS.SECONDARY,
+              }}
+            >
+              <Text
+                className="mb-2 text-lg font-semibold"
+                style={{ color: TEXT_COLORS.PRIMARY }}
+              >
+                Custom font size
               </Text>
-              <Text className="text-gray-400 text-sm mb-4">
-                Enter your preferred font size for the terminal.
+              <Text
+                className="mb-4 text-sm"
+                style={{ color: TEXT_COLORS.TERTIARY }}
+              >
+                Enter your preferred terminal font size.
               </Text>
               <TextInput
                 value={customFontSize}
                 onChangeText={setCustomFontSize}
-                placeholder="e.g., 15"
-                placeholderTextColor="#6b7280"
+                placeholder="e.g. 15"
+                placeholderTextColor={TEXT_COLORS.TERTIARY}
                 keyboardType="number-pad"
                 autoFocus
                 style={{
-                  backgroundColor: "#27272a",
+                  backgroundColor: BACKGROUNDS.BUTTON_ALT,
                   borderWidth: 1,
-                  borderColor: "#3f3f46",
-                  borderRadius: 8,
+                  borderColor: BORDER_COLORS.PANEL,
+                  borderRadius: RADIUS.BUTTON,
                   padding: 12,
-                  color: "#ffffff",
+                  color: TEXT_COLORS.PRIMARY,
                   fontSize: 16,
                   textAlignVertical: "center",
                 }}
               />
-              <View className="flex-row gap-3 mt-4">
+              <View className="mt-4 flex-row gap-3">
                 <TouchableOpacity
                   onPress={() => {
                     setShowCustomInput(false);
                     setCustomFontSize("");
                   }}
-                  className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-lg p-3"
+                  className="flex-1 rounded-lg border p-3"
+                  style={{
+                    backgroundColor: BACKGROUNDS.BUTTON,
+                    borderColor: BORDER_COLORS.BUTTON,
+                  }}
                 >
-                  <Text className="text-white text-center font-semibold">
+                  <Text
+                    className="text-center font-semibold"
+                    style={{ color: TEXT_COLORS.PRIMARY }}
+                  >
                     Cancel
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleCustomFontSize}
-                  className="flex-1 bg-green-600 rounded-lg p-3"
+                  className="flex-1 rounded-lg p-3"
+                  style={{ backgroundColor: BACKGROUNDS.ACTIVE }}
                 >
-                  <Text className="text-white text-center font-semibold">
+                  <Text className="text-center font-semibold text-[#fcfbf8]">
                     Apply
                   </Text>
                 </TouchableOpacity>
@@ -272,30 +310,51 @@ export default function TerminalCustomization() {
         supportedOrientations={["portrait", "landscape"]}
       >
         <Pressable
-          className="flex-1 bg-black/50 justify-center items-center"
+          className="flex-1 items-center justify-center px-8"
+          style={{ backgroundColor: "rgba(28,28,28,0.42)" }}
           onPress={() => setShowResetConfirm(false)}
         >
-          <Pressable className="bg-[#1a1a1a] rounded-lg p-6 mx-8 border border-[#303032]">
-            <Text className="text-white text-lg font-semibold mb-2">
-              Confirm Reset
+          <Pressable
+            className="w-full rounded-lg border p-6"
+            style={{
+              backgroundColor: BACKGROUNDS.CARD,
+              borderColor: BORDER_COLORS.SECONDARY,
+            }}
+          >
+            <Text
+              className="mb-2 text-lg font-semibold"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
+              Confirm reset
             </Text>
-            <Text className="text-gray-400 text-sm mb-6">
-              This will reset all terminal customizations to default settings.
+            <Text
+              className="mb-6 text-sm"
+              style={{ color: TEXT_COLORS.TERTIARY }}
+            >
+              This will reset terminal customizations to default settings.
             </Text>
             <View className="flex-row gap-3">
               <TouchableOpacity
                 onPress={() => setShowResetConfirm(false)}
-                className="flex-1 bg-[#27272a] border border-[#3f3f46] rounded-lg p-3"
+                className="flex-1 rounded-lg border p-3"
+                style={{
+                  backgroundColor: BACKGROUNDS.BUTTON,
+                  borderColor: BORDER_COLORS.BUTTON,
+                }}
               >
-                <Text className="text-white text-center font-semibold">
+                <Text
+                  className="text-center font-semibold"
+                  style={{ color: TEXT_COLORS.PRIMARY }}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleReset}
-                className="flex-1 bg-red-600 rounded-lg p-3"
+                className="flex-1 rounded-lg p-3"
+                style={{ backgroundColor: "#dc2626" }}
               >
-                <Text className="text-white text-center font-semibold">
+                <Text className="text-center font-semibold text-white">
                   Reset
                 </Text>
               </TouchableOpacity>

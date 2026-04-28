@@ -6,9 +6,16 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Search, X } from "lucide-react-native";
+
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 import { KeyConfig, KeyCategory } from "@/types/keyboard";
 import { ALL_KEYS } from "@/app/tabs/sessions/terminal/keyboard/KeyDefinitions";
 
@@ -65,14 +72,8 @@ export default function KeySelector({
       );
     }
 
-    keys = keys.filter((key) => !excludeKeys.includes(key.id));
-
-    return keys;
+    return keys.filter((key) => !excludeKeys.includes(key.id));
   }, [allKeysArray, selectedCategory, searchQuery, excludeKeys]);
-
-  const handleSelectKey = (key: KeyConfig) => {
-    onSelectKey(key);
-  };
 
   return (
     <Modal
@@ -81,83 +82,122 @@ export default function KeySelector({
       transparent={false}
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-[#18181b]">
+      <View className="flex-1" style={{ backgroundColor: BACKGROUNDS.DARK }}>
         <View
-          className="bg-[#1a1a1a] border-b border-[#303032] px-4"
-          style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
+          className="border-b px-4"
+          style={{
+            paddingTop: insets.top + 12,
+            paddingBottom: 12,
+            backgroundColor: BACKGROUNDS.HEADER,
+            borderBottomColor: BORDER_COLORS.SECONDARY,
+          }}
         >
           <View className="flex-row items-center justify-between">
-            <Text className="text-white text-lg font-semibold">{title}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text className="text-green-500 text-base font-semibold">
-                Done
-              </Text>
+            <Text
+              className="text-lg font-semibold"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
+              {title}
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              className="items-center justify-center rounded-md border"
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: BACKGROUNDS.BUTTON,
+                borderColor: BORDER_COLORS.BUTTON,
+              }}
+            >
+              <X color={TEXT_COLORS.PRIMARY} size={18} />
             </TouchableOpacity>
           </View>
         </View>
 
-        <View className="bg-[#1a1a1a] border-b border-[#303032] px-4 py-3">
-          <TextInput
-            className="bg-[#27272a] border border-[#3f3f46] rounded-lg px-4 py-2 text-white"
-            placeholder="Search keys..."
-            placeholderTextColor="#6b7280"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+        <View
+          className="border-b px-4 py-3"
+          style={{
+            backgroundColor: BACKGROUNDS.DARK,
+            borderBottomColor: BORDER_COLORS.SECONDARY,
+          }}
+        >
+          <View
+            className="flex-row items-center rounded-md border px-3"
+            style={{
+              height: 42,
+              backgroundColor: BACKGROUNDS.CARD,
+              borderColor: BORDER_COLORS.SECONDARY,
+            }}
+          >
+            <Search size={16} color={TEXT_COLORS.TERTIARY} />
+            <TextInput
+              className="ml-2 flex-1 text-sm"
+              placeholder="Search keys..."
+              placeholderTextColor={TEXT_COLORS.TERTIARY}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              selectionColor={TEXT_COLORS.ACCENT}
+              underlineColorAndroid="transparent"
+              style={{
+                color: TEXT_COLORS.PRIMARY,
+                backgroundColor: "transparent",
+                paddingVertical: 0,
+              }}
+            />
+          </View>
         </View>
 
-        <View className="bg-[#1a1a1a] border-b border-[#303032]">
+        <View
+          className="border-b"
+          style={{
+            backgroundColor: BACKGROUNDS.DARK,
+            borderBottomColor: BORDER_COLORS.SECONDARY,
+          }}
+        >
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
-            <TouchableOpacity
-              onPress={() => setSelectedCategory("all")}
-              className={`px-4 py-3 mr-2 ${
-                selectedCategory === "all" ? "border-b-2 border-green-500" : ""
-              }`}
-            >
-              <Text
-                className={`text-sm font-semibold ${
-                  selectedCategory === "all"
-                    ? "text-green-500"
-                    : "text-gray-400"
-                }`}
-              >
-                All
-              </Text>
-            </TouchableOpacity>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-3 mr-2 ${
-                  selectedCategory === cat.id
-                    ? "border-b-2 border-green-500"
-                    : ""
-                }`}
-              >
-                <Text
-                  className={`text-sm font-semibold ${
-                    selectedCategory === cat.id
-                      ? "text-green-500"
-                      : "text-gray-400"
-                  }`}
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {([{ id: "all", label: "All" }, ...CATEGORIES] as const).map(
+              (cat) => {
+                const active = selectedCategory === cat.id;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => setSelectedCategory(cat.id)}
+                    className="mr-2 px-4 py-3"
+                    style={{
+                      borderBottomWidth: active ? 2 : 0,
+                      borderBottomColor: TEXT_COLORS.PRIMARY,
+                    }}
+                  >
+                    <Text
+                      className="text-sm font-semibold"
+                      style={{
+                        color: active
+                          ? TEXT_COLORS.PRIMARY
+                          : TEXT_COLORS.TERTIARY,
+                      }}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              },
+            )}
           </ScrollView>
         </View>
 
         <ScrollView className="flex-1 px-4 py-4">
           {filteredKeys.length === 0 ? (
             <View className="py-8">
-              <Text className="text-gray-400 text-center">
+              <Text
+                className="text-center"
+                style={{ color: TEXT_COLORS.TERTIARY }}
+              >
                 {searchQuery
                   ? "No keys found matching your search"
                   : "No keys available"}
@@ -168,28 +208,52 @@ export default function KeySelector({
               {filteredKeys.map((key) => (
                 <TouchableOpacity
                   key={key.id}
-                  onPress={() => handleSelectKey(key)}
-                  className="bg-[#1a1a1a] border border-[#303032] rounded-lg p-4 flex-row items-center justify-between"
+                  onPress={() => onSelectKey(key)}
+                  className="flex-row items-center justify-between rounded-lg border p-4"
+                  activeOpacity={0.75}
+                  style={{
+                    backgroundColor: BACKGROUNDS.CARD,
+                    borderColor: BORDER_COLORS.SECONDARY,
+                    borderRadius: RADIUS.CARD,
+                  }}
                 >
-                  <View className="flex-1 mr-4">
-                    <View className="flex-row items-center gap-2 mb-1">
-                      <View className="bg-[#27272a] border border-[#3f3f46] rounded px-3 py-1.5">
-                        <Text className="text-white text-sm font-mono">
+                  <View className="mr-4 flex-1">
+                    <View className="mb-1 flex-row items-center gap-2">
+                      <View
+                        className="rounded border px-3 py-1.5"
+                        style={{
+                          backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                          borderColor: BORDER_COLORS.SECONDARY,
+                        }}
+                      >
+                        <Text
+                          className="font-mono text-sm"
+                          style={{ color: TEXT_COLORS.PRIMARY }}
+                        >
                           {key.label}
                         </Text>
                       </View>
-                      <Text className="text-gray-500 text-xs">
+                      <Text
+                        className="text-xs"
+                        style={{ color: TEXT_COLORS.TERTIARY }}
+                      >
                         {key.category}
                       </Text>
                     </View>
                     {key.description && (
-                      <Text className="text-gray-400 text-xs mt-1">
+                      <Text
+                        className="mt-1 text-xs"
+                        style={{ color: TEXT_COLORS.SECONDARY }}
+                      >
                         {key.description}
                       </Text>
                     )}
                   </View>
-                  <View className="bg-green-600 rounded-lg px-4 py-2">
-                    <Text className="text-white text-sm font-semibold">
+                  <View
+                    className="rounded-md px-4 py-2"
+                    style={{ backgroundColor: BACKGROUNDS.ACTIVE }}
+                  >
+                    <Text className="text-sm font-semibold text-[#fcfbf8]">
                       Add
                     </Text>
                   </View>

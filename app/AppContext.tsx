@@ -11,11 +11,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getVersionInfo,
   initializeServerConfig,
-  isAuthenticated as checkAuthStatus,
   getLatestGitHubRelease,
   setAuthStateCallback,
-  clearServerConfig,
 } from "./main-axios";
+import { isOfflineModeEnabled, setOfflineModeEnabled } from "./offline-storage";
 import Constants from "expo-constants";
 
 interface Server {
@@ -32,6 +31,8 @@ interface AppContextType {
   setSelectedServer: (server: Server | null) => void;
   isAuthenticated: boolean;
   setAuthenticated: (auth: boolean) => void;
+  isOfflineMode: boolean;
+  setOfflineMode: (offline: boolean) => void;
   showUpdateScreen: boolean;
   setShowUpdateScreen: (show: boolean) => void;
   isLoading: boolean;
@@ -57,9 +58,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const [isAuthenticated, setAuthenticated] = useState(false);
+  const [isOfflineMode, setOfflineModeState] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const [showUpdateScreen, setShowUpdateScreen] = useState<boolean>(false);
+
+  const setOfflineMode = async (offline: boolean) => {
+    await setOfflineModeEnabled(offline);
+    setOfflineModeState(offline);
+  };
 
   const checkShouldShowUpdateScreen = async (): Promise<boolean> => {
     try {
@@ -93,6 +100,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const initializeApp = async () => {
       try {
         setIsLoading(true);
+
+        const offlineMode = await isOfflineModeEnabled();
+        setOfflineModeState(offlineMode);
+
+        if (offlineMode) {
+          setAuthenticated(false);
+          setShowServerManager(false);
+          setShowLoginForm(false);
+          setSelectedServer({ name: "Offline", ip: "local" });
+          setShowUpdateScreen(false);
+          return;
+        }
 
         await initializeServerConfig();
 
@@ -170,13 +189,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   useEffect(() => {
     setAuthStateCallback(async (isAuthenticated: boolean) => {
-      if (!isAuthenticated) {
+      if (!isAuthenticated && !isOfflineMode) {
         setAuthenticated(false);
         setShowLoginForm(true);
         setShowServerManager(false);
       }
     });
-  }, []);
+  }, [isOfflineMode]);
 
   const lastValidationTimeRef = useRef<number>(0);
   const validationInProgressRef = useRef<boolean>(false);
@@ -186,6 +205,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (
         nextAppState === "active" &&
         isAuthenticated &&
+        !isOfflineMode &&
         !validationInProgressRef.current
       ) {
         const now = Date.now();
@@ -223,7 +243,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return () => {
       subscription.remove();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isOfflineMode]);
 
   return (
     <AppContext.Provider
@@ -236,6 +256,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         setSelectedServer,
         isAuthenticated,
         setAuthenticated,
+        isOfflineMode,
+        setOfflineMode,
         showUpdateScreen,
         setShowUpdateScreen,
         isLoading,

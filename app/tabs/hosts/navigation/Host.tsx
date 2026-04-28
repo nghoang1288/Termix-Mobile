@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Activity,
   ArrowDownUp,
+  Pencil,
   FolderOpen,
   MoreVertical,
   Terminal,
+  Trash2,
   X,
 } from "lucide-react-native";
 
@@ -32,6 +34,8 @@ interface HostProps {
   host: SSHHost;
   status: "online" | "offline" | "unknown";
   isLast?: boolean;
+  onEditHost?: (host: SSHHost) => void;
+  onDeleteHost?: (host: SSHHost) => void;
 }
 
 const statusMeta = {
@@ -66,11 +70,23 @@ function parseStatsConfig(host: SSHHost): StatsConfig {
   }
 }
 
-export default function Host({ host, status }: HostProps) {
+export default function Host({
+  host,
+  status,
+  onEditHost,
+  onDeleteHost,
+}: HostProps) {
   const { navigateToSessions } = useTerminalSessions();
   const insets = useSafeAreaInsets();
   const [showContextMenu, setShowContextMenu] = useState(false);
-  const meta = statusMeta[status];
+  const meta =
+    status === "unknown" && (host.id < 0 || host.userId === "offline")
+      ? {
+          label: "Saved",
+          color: "#64748b",
+          muted: "rgba(100,116,139,0.14)",
+        }
+      : statusMeta[status];
   const statsConfig = useMemo(() => parseStatsConfig(host), [host]);
   const tags = Array.isArray(host.tags) ? host.tags : [];
   const visibleTags = tags.slice(0, 3);
@@ -135,6 +151,26 @@ export default function Host({ host, status }: HostProps) {
       title: "Tunnels",
       subtitle: "Open saved port forwards",
       onPress: openTunnel,
+    },
+    onEditHost && {
+      key: "edit",
+      icon: <Pencil size={20} color={TEXT_COLORS.PRIMARY} />,
+      title: "Edit offline server",
+      subtitle: "Update saved host, auth, and folder",
+      onPress: () => {
+        onEditHost(host);
+        setShowContextMenu(false);
+      },
+    },
+    onDeleteHost && {
+      key: "delete",
+      icon: <Trash2 size={20} color="#dc2626" />,
+      title: "Delete offline server",
+      subtitle: "Remove local saved data from this device",
+      onPress: () => {
+        onDeleteHost(host);
+        setShowContextMenu(false);
+      },
     },
   ].filter(Boolean) as {
     key: string;

@@ -15,9 +15,17 @@ interface FolderProps {
   name: string;
   hosts: SSHHost[];
   getHostStatus: (hostId: number) => "online" | "offline" | "unknown";
+  onEditHost?: (host: SSHHost) => void;
+  onDeleteHost?: (host: SSHHost) => void;
 }
 
-export default function Folder({ name, hosts, getHostStatus }: FolderProps) {
+export default function Folder({
+  name,
+  hosts,
+  getHostStatus,
+  onEditHost,
+  onDeleteHost,
+}: FolderProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const rotateValue = useRef(new Animated.Value(0)).current;
 
@@ -105,6 +113,8 @@ export default function Folder({ name, hosts, getHostStatus }: FolderProps) {
                   host={host}
                   status={getHostStatus(host.id)}
                   isLast={index === hosts.length - 1}
+                  onEditHost={onEditHost}
+                  onDeleteHost={onDeleteHost}
                 />
               </View>
             ))
