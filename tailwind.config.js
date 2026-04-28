@@ -13,7 +13,7 @@ module.exports = {
         "dark-bg-active": "#334155",
         "dark-bg-header": "#1a1f27",
         "dark-border": "#343b46",
-        "dark-border-active": "#38bdf8",
+        "dark-border-active": "#61d65f",
         "dark-border-hover": "#45505d",
         "dark-hover": "#2d3440",
         "dark-active": "#334155",

@@ -800,6 +800,14 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
       ],
     );
 
+    const showBlockingConnectionOverlay =
+      connectionState === "connecting" && !hasReceivedData;
+    const showConnectionBanner =
+      connectionState === "reconnecting" ||
+      (connectionState === "connecting" && hasReceivedData);
+    const connectionStatusLabel =
+      connectionState === "reconnecting" ? "Reconnecting..." : "Connecting...";
+
     return (
       <View
         style={{
@@ -845,7 +853,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                 minHeight: "100%",
                 paddingHorizontal: 6,
                 paddingTop: 4,
-                paddingBottom: 96,
+                paddingBottom: 16,
               }}
               keyboardShouldPersistTaps="handled"
               showsHorizontalScrollIndicator={false}
@@ -883,8 +891,45 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
             </ScrollView>
           </View>
 
-          {(connectionState === "connecting" ||
-            connectionState === "reconnecting") && (
+          {showConnectionBanner && (
+            <View
+              style={{
+                position: "absolute",
+                top: 8,
+                left: 10,
+                right: 10,
+                alignItems: "center",
+                pointerEvents: "none",
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: BACKGROUNDS.CARD,
+                  borderRadius: 999,
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderWidth: 1,
+                  borderColor: BORDER_COLORS.PRIMARY,
+                }}
+              >
+                <ActivityIndicator size="small" color="#22C55E" />
+                <Text
+                  style={{
+                    color: "#ffffff",
+                    fontSize: 12,
+                    fontWeight: "600",
+                  }}
+                >
+                  {connectionStatusLabel}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {showBlockingConnectionOverlay && (
             <View
               style={{
                 position: "absolute",
@@ -919,9 +964,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                     textAlign: "center",
                   }}
                 >
-                  {connectionState === "reconnecting"
-                    ? "Reconnecting..."
-                    : "Connecting..."}
+                  {connectionStatusLabel}
                 </Text>
                 <Text
                   style={{

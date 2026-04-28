@@ -15,7 +15,7 @@ export const BORDER_COLORS = {
   SECONDARY: "#2b323c",
   SEPARATOR: "#2b323c",
   BUTTON: "#343b46",
-  ACTIVE: "#38bdf8",
+  ACTIVE: "#61d65f",
   PANEL: "#2b323c",
 } as const;
 
@@ -52,7 +52,7 @@ export const TEXT_COLORS = {
   SECONDARY: "#c5ced8",
   TERTIARY: "#7f8a98",
   DISABLED: "#4B5563",
-  ACCENT: "#38bdf8",
+  ACCENT: "#61d65f",
 } as const;
 
 export const ICON_SIZES = {

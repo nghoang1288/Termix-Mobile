@@ -41,6 +41,7 @@ interface TabBarProps {
   onShowKeyboard?: () => void;
   keyboardIntentionallyHiddenRef: React.MutableRefObject<boolean>;
   activeSessionType?: TerminalSession["type"];
+  isSystemKeyboardVisible?: boolean;
 }
 
 export default function TabBar({
@@ -56,13 +57,26 @@ export default function TabBar({
   onShowKeyboard,
   keyboardIntentionallyHiddenRef,
   activeSessionType,
+  isSystemKeyboardVisible = false,
 }: TabBarProps) {
   const router = useRouter();
   const { isLandscape } = useOrientation();
   const insets = useSafeAreaInsets();
 
-  const tabBarHeight = getTabBarHeight(isLandscape);
-  const buttonSize = getButtonSize(isLandscape);
+  const isCompact =
+    activeSessionType === "terminal" &&
+    !isCustomKeyboardVisible &&
+    isSystemKeyboardVisible;
+  const tabBarHeight = isCompact
+    ? isLandscape
+      ? 34
+      : 38
+    : getTabBarHeight(isLandscape);
+  const buttonSize = isCompact
+    ? isLandscape
+      ? 28
+      : 30
+    : getButtonSize(isLandscape);
 
   const needsBottomPadding = activeSessionType !== "terminal";
 
@@ -104,7 +118,7 @@ export default function TabBar({
             flexDirection: "row",
             alignItems: "center",
             height: tabBarHeight,
-            paddingHorizontal: 8,
+            paddingHorizontal: isCompact ? 5 : 8,
           }}
         >
           <TouchableOpacity
@@ -124,10 +138,13 @@ export default function TabBar({
               shadowOpacity: 0.1,
               shadowRadius: 4,
               elevation: 2,
-              marginRight: isLandscape ? 6 : 8,
+              marginRight: isCompact ? 5 : isLandscape ? 6 : 8,
             }}
           >
-            <ArrowLeft size={isLandscape ? 18 : 20} color="#ffffff" />
+            <ArrowLeft
+              size={isCompact ? 16 : isLandscape ? 18 : 20}
+              color="#ffffff"
+            />
           </TouchableOpacity>
 
           <View style={{ flex: 1, justifyContent: "center" }}>
@@ -139,7 +156,7 @@ export default function TabBar({
               focusable={false}
               contentContainerStyle={{
                 paddingHorizontal: 0,
-                gap: 6,
+                gap: isCompact ? 4 : 6,
                 alignItems: "center",
               }}
               className="flex-row"
@@ -179,17 +196,31 @@ export default function TabBar({
                       shadowOpacity: isActive ? 0.2 : 0,
                       shadowRadius: 4,
                       elevation: isActive ? 3 : 0,
-                      minWidth: isLandscape ? 100 : 120,
+                      minWidth: isCompact
+                        ? isLandscape
+                          ? 82
+                          : 96
+                        : isLandscape
+                          ? 100
+                          : 120,
                       height: buttonSize,
                     }}
                   >
-                    <View className="flex-1 px-3 py-2">
+                    <View
+                      className="flex-1"
+                      style={{
+                        paddingHorizontal: isCompact ? 8 : 12,
+                        paddingVertical: isCompact ? 4 : 8,
+                      }}
+                    >
                       <Text
-                        className="text-sm font-medium"
+                        className="font-medium"
+                        numberOfLines={1}
                         style={{
                           color: isActive
                             ? TEXT_COLORS.ACCENT
                             : TEXT_COLORS.TERTIARY,
+                          fontSize: isCompact ? 11 : 14,
                         }}
                       >
                         {session.title}
@@ -205,7 +236,7 @@ export default function TabBar({
                       className="items-center justify-center"
                       activeOpacity={0.7}
                       style={{
-                        width: isLandscape ? 32 : 36,
+                        width: isCompact ? 26 : isLandscape ? 32 : 36,
                         height: buttonSize,
                         borderLeftWidth: BORDERS.STANDARD,
                         borderLeftColor: isActive
@@ -214,7 +245,7 @@ export default function TabBar({
                       }}
                     >
                       <X
-                        size={isLandscape ? 14 : 16}
+                        size={isCompact ? 12 : isLandscape ? 14 : 16}
                         color={isActive ? "#ffffff" : "#9CA3AF"}
                         strokeWidth={2}
                       />
@@ -243,13 +274,19 @@ export default function TabBar({
                 shadowOpacity: 0.1,
                 shadowRadius: 4,
                 elevation: 2,
-                marginLeft: isLandscape ? 6 : 8,
+                marginLeft: isCompact ? 5 : isLandscape ? 6 : 8,
               }}
             >
               {keyboardIntentionallyHiddenRef.current ? (
-                <ChevronUp size={isLandscape ? 18 : 20} color="#ffffff" />
+                <ChevronUp
+                  size={isCompact ? 16 : isLandscape ? 18 : 20}
+                  color="#ffffff"
+                />
               ) : (
-                <ChevronDown size={isLandscape ? 18 : 20} color="#ffffff" />
+                <ChevronDown
+                  size={isCompact ? 16 : isLandscape ? 18 : 20}
+                  color="#ffffff"
+                />
               )}
             </TouchableOpacity>
           )}
@@ -272,13 +309,19 @@ export default function TabBar({
                 shadowOpacity: 0.1,
                 shadowRadius: 4,
                 elevation: 2,
-                marginLeft: isLandscape ? 6 : 8,
+                marginLeft: isCompact ? 5 : isLandscape ? 6 : 8,
               }}
             >
               {isCustomKeyboardVisible ? (
-                <Minus size={isLandscape ? 18 : 20} color="#ffffff" />
+                <Minus
+                  size={isCompact ? 16 : isLandscape ? 18 : 20}
+                  color="#ffffff"
+                />
               ) : (
-                <Plus size={isLandscape ? 18 : 20} color="#ffffff" />
+                <Plus
+                  size={isCompact ? 16 : isLandscape ? 18 : 20}
+                  color="#ffffff"
+                />
               )}
             </TouchableOpacity>
           )}

@@ -99,6 +99,10 @@ export default function Sessions() {
   const isSelectingRef = useRef(false);
   const keyboardWasHiddenBeforeSelectionRef = useRef(false);
 
+  const activeSession = sessions.find(
+    (session) => session.id === activeSessionId,
+  );
+
   const maxKeyboardHeight = getMaxKeyboardHeight(height, isLandscape, isIPad);
   const effectiveKeyboardHeight = isLandscape
     ? Math.min(lastKeyboardHeight, maxKeyboardHeight)
@@ -106,21 +110,40 @@ export default function Sessions() {
   const currentKeyboardHeight = isLandscape
     ? Math.min(keyboardHeight, maxKeyboardHeight)
     : keyboardHeight;
+  const systemKeyboardVisible =
+    isKeyboardVisible &&
+    currentKeyboardHeight > 0 &&
+    activeSession?.type === "terminal" &&
+    !isCustomKeyboardVisible &&
+    !keyboardIntentionallyHiddenRef.current;
 
+  const customKeyboardMinHeight = isLandscape ? 152 : 188;
+  const customKeyboardMaxHeight = Math.min(
+    isLandscape ? 260 : 360,
+    Math.floor(height * (isLandscape ? 0.46 : 0.36)),
+  );
   const customKeyboardHeight = Math.max(
-    200,
-    Math.min(effectiveKeyboardHeight, 500),
+    customKeyboardMinHeight,
+    Math.min(
+      effectiveKeyboardHeight || customKeyboardMinHeight,
+      customKeyboardMaxHeight,
+    ),
   );
 
-  const SESSION_TAB_BAR_HEIGHT = getTabBarHeight(isLandscape) + 2;
-  const CUSTOM_KEYBOARD_TAB_HEIGHT = 36;
-
-  const KEYBOARD_BAR_HEIGHT = isLandscape ? 48 : 52;
-  const KEYBOARD_BAR_HEIGHT_EXTENDED = isLandscape ? 64 : 68;
-
-  const activeSession = sessions.find(
-    (session) => session.id === activeSessionId,
-  );
+  const defaultSessionTabBarHeight = getTabBarHeight(isLandscape) + 2;
+  const compactSessionTabBarHeight = isLandscape ? 34 : 38;
+  const SESSION_TAB_BAR_HEIGHT = systemKeyboardVisible
+    ? compactSessionTabBarHeight
+    : defaultSessionTabBarHeight;
+  const CUSTOM_KEYBOARD_TAB_HEIGHT = 34;
+  const COMMAND_BAR_HEIGHT = systemKeyboardVisible
+    ? isLandscape
+      ? 36
+      : 42
+    : 78 + (keyboardIntentionallyHiddenRef.current ? 12 : 0);
+  const terminalKeyboardOffset = systemKeyboardVisible
+    ? currentKeyboardHeight
+    : 0;
 
   const getTabBarBottomPosition = () => {
     if (activeSession?.type !== "terminal") {
@@ -131,15 +154,7 @@ export default function Sessions() {
       return CUSTOM_KEYBOARD_TAB_HEIGHT + customKeyboardHeight;
     }
 
-    if (keyboardIntentionallyHiddenRef.current) {
-      return KEYBOARD_BAR_HEIGHT_EXTENDED;
-    }
-
-    if (isKeyboardVisible && currentKeyboardHeight > 0) {
-      return KEYBOARD_BAR_HEIGHT + currentKeyboardHeight;
-    }
-
-    return KEYBOARD_BAR_HEIGHT;
+    return COMMAND_BAR_HEIGHT + terminalKeyboardOffset;
   };
 
   const getBottomMargin = (sessionType: SessionType = "terminal") => {
@@ -155,19 +170,13 @@ export default function Sessions() {
       );
     }
 
-    if (keyboardIntentionallyHiddenRef.current) {
-      return SESSION_TAB_BAR_HEIGHT + KEYBOARD_BAR_HEIGHT_EXTENDED;
-    }
-
-    if (isKeyboardVisible && currentKeyboardHeight > 0) {
-      return (
-        SESSION_TAB_BAR_HEIGHT + KEYBOARD_BAR_HEIGHT + currentKeyboardHeight
-      );
-    }
-
-    return SESSION_TAB_BAR_HEIGHT + KEYBOARD_BAR_HEIGHT;
+    return SESSION_TAB_BAR_HEIGHT + COMMAND_BAR_HEIGHT + terminalKeyboardOffset;
   };
 
+  const getKeyboardBarBottomPosition = () => {
+    if (!systemKeyboardVisible) return 0;
+    return currentKeyboardHeight + (isLandscape && !isIPad ? 4 : 0);
+  };
   useEffect(() => {
     const terminalMap: Record<string, React.RefObject<TerminalHandle>> = {
       ...terminalRefs.current,
@@ -722,16 +731,10 @@ export default function Sessions() {
           <View
             style={{
               position: "absolute",
-              bottom: keyboardIntentionallyHiddenRef.current
-                ? 0
-                : isKeyboardVisible && currentKeyboardHeight > 0
-                  ? currentKeyboardHeight + (isLandscape && !isIPad ? 4 : 0)
-                  : 0,
+              bottom: getKeyboardBarBottomPosition(),
               left: 0,
               right: 0,
-              height: keyboardIntentionallyHiddenRef.current
-                ? KEYBOARD_BAR_HEIGHT_EXTENDED
-                : KEYBOARD_BAR_HEIGHT,
+              height: COMMAND_BAR_HEIGHT,
               zIndex: 1003,
               overflow: "visible",
               justifyContent: "center",
@@ -748,6 +751,7 @@ export default function Sessions() {
               isKeyboardIntentionallyHidden={
                 keyboardIntentionallyHiddenRef.current
               }
+              isSystemKeyboardVisible={systemKeyboardVisible}
             />
           </View>
         )}
@@ -762,7 +766,7 @@ export default function Sessions() {
               bottom: 0,
               left: 0,
               right: 0,
-              height: effectiveKeyboardHeight,
+              height: customKeyboardHeight,
               backgroundColor: BACKGROUNDS.DARKEST,
               zIndex: 1002,
             }}
@@ -792,6 +796,7 @@ export default function Sessions() {
           onShowKeyboard={() => setKeyboardIntentionallyHidden(false)}
           keyboardIntentionallyHiddenRef={keyboardIntentionallyHiddenRef}
           activeSessionType={activeSession?.type}
+          isSystemKeyboardVisible={systemKeyboardVisible}
         />
       </View>
 

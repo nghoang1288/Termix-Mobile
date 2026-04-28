@@ -31,14 +31,14 @@ export default function BottomToolbar({
 
   if (!isVisible) return null;
 
-  const safeKeyboardHeight = Math.max(200, Math.min(keyboardHeight, 500));
+  const safeKeyboardHeight = Math.max(152, Math.min(keyboardHeight, 360));
 
   const tabs: { id: ToolbarMode; label: string }[] = [
     { id: "keyboard", label: "KEYBOARD" },
     { id: "snippets", label: "SNIPPETS" },
   ];
 
-  const TAB_BAR_HEIGHT = 36;
+  const TAB_BAR_HEIGHT = 34;
 
   return (
     <View className="bg-dark-bg-darkest" pointerEvents="box-none">

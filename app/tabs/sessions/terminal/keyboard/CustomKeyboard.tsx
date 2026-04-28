@@ -5,7 +5,7 @@ import { TerminalHandle } from "../Terminal";
 import KeyboardKey from "./KeyboardKey";
 import { useKeyboardCustomization } from "@/app/contexts/KeyboardCustomizationContext";
 import { KeyConfig } from "@/types/keyboard";
-import { BORDER_COLORS, SPACING } from "@/app/constants/designTokens";
+import { BORDER_COLORS } from "@/app/constants/designTokens";
 
 interface CustomKeyboardProps {
   terminalRef: React.RefObject<TerminalHandle | null>;
@@ -98,7 +98,7 @@ export default function CustomKeyboard({
       if (clipboardContent) {
         sendKey(clipboardContent);
       }
-    } catch (error) {}
+    } catch {}
   };
 
   const { rows } = config.fullKeyboard;
@@ -128,20 +128,24 @@ export default function CustomKeyboard({
     return baseStyle;
   };
 
-  const safeKeyboardHeight = Math.max(200, Math.min(keyboardHeight, 500));
+  const safeKeyboardHeight = Math.max(152, Math.min(keyboardHeight, 360));
+  const isTight = safeKeyboardHeight < 220 || compactMode;
 
   return (
     <View className="h-full bg-dark-bg-darkest" pointerEvents="box-none">
       <ScrollView
         className="h-full"
-        contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8 }}
+        contentContainerStyle={{
+          paddingHorizontal: isTight ? 6 : 8,
+          paddingVertical: isTight ? 6 : 8,
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         pointerEvents="auto"
       >
         {visibleRows.map((row, rowIndex) => (
           <View key={row.id}>
-            {row.label && (
+            {row.label && !isTight && (
               <View className="mb-1 mt-1">
                 <Text className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide">
                   {row.label}
@@ -172,7 +176,7 @@ export default function CustomKeyboard({
                 className="h-px mx-0"
                 style={{
                   backgroundColor: BORDER_COLORS.SEPARATOR,
-                  marginVertical: compactMode ? 4 : 8,
+                  marginVertical: isTight ? 3 : 8,
                 }}
               />
             )}
