@@ -13,30 +13,19 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  type DimensionValue,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Cpu,
-  MemoryStick,
-  HardDrive,
-  Activity,
-  Clock,
-  Server,
-} from "lucide-react-native";
+import { Cpu, MemoryStick, HardDrive, Server } from "lucide-react-native";
 import { getServerMetricsById, executeSnippet } from "../../../main-axios";
 import { showToast } from "../../../utils/toast";
 import type { ServerMetrics, QuickAction } from "../../../../types";
 import { useOrientation } from "@/app/utils/orientation";
-import {
-  getResponsivePadding,
-  getColumnCount,
-  getTabBarHeight,
-} from "@/app/utils/responsive";
+import { getResponsivePadding, getColumnCount } from "@/app/utils/responsive";
 import {
   BACKGROUNDS,
   BORDER_COLORS,
   RADIUS,
-  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 
 interface ServerStatsProps {
@@ -69,7 +58,6 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
 
     const padding = getResponsivePadding(isLandscape);
     const columnCount = getColumnCount(width, isLandscape, 350);
-    const tabBarHeight = getTabBarHeight(isLandscape);
 
     const fetchMetrics = useCallback(
       async (showLoadingSpinner = true) => {
@@ -129,24 +117,10 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
       };
     }, [isVisible, fetchMetrics]);
 
-    const cardWidth =
-      isLandscape && columnCount > 1 ? `${100 / columnCount - 1}%` : "100%";
-
-    const formatUptime = (seconds: number | null): string => {
-      if (seconds === null || seconds === undefined) return "N/A";
-
-      const days = Math.floor(seconds / 86400);
-      const hours = Math.floor((seconds % 86400) / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-
-      if (days > 0) {
-        return `${days}d ${hours}h ${minutes}m`;
-      } else if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-      } else {
-        return `${minutes}m`;
-      }
-    };
+    const cardWidth: DimensionValue =
+      isLandscape && columnCount > 1
+        ? (`${100 / columnCount - 1}%` as DimensionValue)
+        : "100%";
 
     const handleQuickAction = async (action: QuickAction) => {
       setExecutingActions((prev) => new Set(prev).add(action.snippetId));
@@ -578,5 +552,7 @@ export const ServerStats = forwardRef<ServerStatsHandle, ServerStatsProps>(
     );
   },
 );
+
+ServerStats.displayName = "ServerStats";
 
 export default ServerStats;

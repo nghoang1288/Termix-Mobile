@@ -1,25 +1,32 @@
+import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
-  View,
+  Modal,
+  ScrollView,
   Text,
   TouchableOpacity,
-  Modal,
   TouchableWithoutFeedback,
-  Animated,
-  Easing,
-  ScrollView,
+  View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  Terminal,
+  Activity,
+  ArrowDownUp,
   FolderOpen,
   MoreVertical,
+  Terminal,
   X,
-  Activity,
 } from "lucide-react-native";
-import { SSHHost } from "@/types";
+
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
+import { DEFAULT_STATS_CONFIG, StatsConfig } from "@/constants/stats-config";
 import { useTerminalSessions } from "@/app/contexts/TerminalSessionsContext";
-import { useEffect, useRef, useState } from "react";
-import { StatsConfig, DEFAULT_STATS_CONFIG } from "@/constants/stats-config";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SSHHost } from "@/types";
 
 interface HostProps {
   host: SSHHost;
@@ -27,85 +34,63 @@ interface HostProps {
   isLast?: boolean;
 }
 
-function Host({ host, status, isLast = false }: HostProps) {
+const statusMeta = {
+  online: {
+    label: "Online",
+    color: "#34d399",
+    muted: "rgba(52,211,153,0.16)",
+  },
+  offline: {
+    label: "Failed",
+    color: "#fb7185",
+    muted: "rgba(251,113,133,0.16)",
+  },
+  unknown: {
+    label: "Checking",
+    color: "#fbbf24",
+    muted: "rgba(251,191,36,0.16)",
+  },
+};
+
+function endpoint(host: SSHHost) {
+  return `${host.username}@${host.ip}:${host.port}`;
+}
+
+function parseStatsConfig(host: SSHHost): StatsConfig {
+  try {
+    return host.statsConfig
+      ? { ...DEFAULT_STATS_CONFIG, ...JSON.parse(host.statsConfig) }
+      : DEFAULT_STATS_CONFIG;
+  } catch {
+    return DEFAULT_STATS_CONFIG;
+  }
+}
+
+export default function Host({ host, status }: HostProps) {
   const { navigateToSessions } = useTerminalSessions();
   const insets = useSafeAreaInsets();
   const [showContextMenu, setShowContextMenu] = useState(false);
-  const [tagsContainerWidth, setTagsContainerWidth] = useState<number>(0);
-  const statusLabel =
-    status === "online" ? "UP" : status === "offline" ? "DOWN" : "UNK";
+  const meta = statusMeta[status];
+  const statsConfig = useMemo(() => parseStatsConfig(host), [host]);
+  const tags = Array.isArray(host.tags) ? host.tags : [];
+  const visibleTags = tags.slice(0, 3);
+  const hiddenTagCount = Math.max(0, tags.length - visibleTags.length);
+  const canTunnel =
+    host.enableTunnel &&
+    Array.isArray(host.tunnelConnections) &&
+    host.tunnelConnections.length > 0;
 
-  const parsedStatsConfig: StatsConfig = (() => {
-    try {
-      return host.statsConfig
-        ? JSON.parse(host.statsConfig)
-        : DEFAULT_STATS_CONFIG;
-    } catch {
-      return DEFAULT_STATS_CONFIG;
-    }
-  })();
-
-  const getStatusPalette = () => {
-    switch (status) {
-      case "online":
-        return {
-          main: "#22C55E",
-          border: "#16A34A",
-          glow: "rgba(34,197,94,0.45)",
-        };
-      case "offline":
-        return {
-          main: "#EF4444",
-          border: "#DC2626",
-          glow: "rgba(239,68,68,0.45)",
-        };
-      default:
-        return {
-          main: "#9CA3AF",
-          border: "#6B7280",
-          glow: "rgba(156,163,175,0.35)",
-        };
-    }
-  };
-
-  const rippleAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (status === "online") {
-      rippleAnim.setValue(0);
-      const loop = Animated.loop(
-        Animated.timing(rippleAnim, {
-          toValue: 1,
-          duration: 1500,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-      );
-      loop.start();
-      return () => {
-        rippleAnim.stopAnimation();
-      };
-    } else {
-      rippleAnim.stopAnimation();
-      rippleAnim.setValue(0);
-    }
-  }, [status, rippleAnim]);
-
-  const handleHostPress = () => {
-    setShowContextMenu(true);
-  };
-
-  const handleTerminalPress = () => {
+  const openTerminal = () => {
     navigateToSessions(host, "terminal");
     setShowContextMenu(false);
   };
 
-  const handleStatsPress = () => {
+  const openStats = () => {
     navigateToSessions(host, "stats");
     setShowContextMenu(false);
   };
 
-  const handleTunnelPress = () => {
+  const openTunnel = () => {
     navigateToSessions(
       {
         ...host,
@@ -117,339 +102,281 @@ function Host({ host, status, isLast = false }: HostProps) {
     setShowContextMenu(false);
   };
 
-  const handleFileManagerPress = () => {
+  const openFiles = () => {
     navigateToSessions(host, "filemanager");
     setShowContextMenu(false);
   };
 
-  const handleCloseContextMenu = () => {
-    setShowContextMenu(false);
-  };
-
-  const closeContextMenu = () => {
-    setShowContextMenu(false);
-  };
+  const actionRows = [
+    host.enableTerminal && {
+      key: "terminal",
+      icon: <Terminal size={20} color={TEXT_COLORS.PRIMARY} />,
+      title: "Open terminal",
+      subtitle: endpoint(host),
+      onPress: openTerminal,
+    },
+    statsConfig.metricsEnabled && {
+      key: "stats",
+      icon: <Activity size={20} color={TEXT_COLORS.PRIMARY} />,
+      title: "Server stats",
+      subtitle: "CPU, memory, disk and network",
+      onPress: openStats,
+    },
+    host.enableFileManager && {
+      key: "files",
+      icon: <FolderOpen size={20} color={TEXT_COLORS.PRIMARY} />,
+      title: "File manager",
+      subtitle: "Browse and manage files",
+      onPress: openFiles,
+    },
+    canTunnel && {
+      key: "tunnel",
+      icon: <ArrowDownUp size={20} color={TEXT_COLORS.PRIMARY} />,
+      title: "Tunnels",
+      subtitle: "Open saved port forwards",
+      onPress: openTunnel,
+    },
+  ].filter(Boolean) as {
+    key: string;
+    icon: ReactNode;
+    title: string;
+    subtitle: string;
+    onPress: () => void;
+  }[];
 
   return (
     <>
       <TouchableOpacity
-        className="p-3 bg-dark-bg-darker rounded-md border-2 border-dark-border"
-        onPress={handleTerminalPress}
-        activeOpacity={0.7}
+        onPress={openTerminal}
+        activeOpacity={0.78}
+        className="rounded-md border p-3"
+        style={{
+          backgroundColor: BACKGROUNDS.BUTTON,
+          borderColor: BORDER_COLORS.SECONDARY,
+          borderRadius: RADIUS.CARD,
+        }}
       >
-        <View className="flex flex-row items-center">
-          <View className="mr-3" style={{ width: 44, height: 44 }}>
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 9999,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#0B0F14",
-                borderWidth: 2,
-                borderColor: getStatusPalette().border,
-              }}
-            >
-              <Text
-                className="text-white font-semibold"
-                style={{ fontSize: 11 }}
-              >
-                {statusLabel}
-              </Text>
-            </View>
-
-            <View
-              style={{
-                position: "absolute",
-                right: -2,
-                bottom: -2,
-                width: 18,
-                height: 18,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {status === "online" && (
-                <Animated.View
-                  pointerEvents="none"
-                  style={{
-                    position: "absolute",
-                    width: 18,
-                    height: 18,
-                    borderRadius: 18,
-                    backgroundColor: getStatusPalette().glow,
-                    transform: [
-                      {
-                        scale: rippleAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [1, 2.2],
-                        }),
-                      },
-                    ],
-                    opacity: rippleAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.45, 0],
-                    }),
-                  }}
-                />
-              )}
-              <View
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: 14,
-                  backgroundColor: getStatusPalette().main,
-                  borderWidth: 1,
-                  borderColor: getStatusPalette().border,
-                }}
-              />
-            </View>
-          </View>
-
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <Text className="text-white font-semibold" numberOfLines={1}>
-                {host.name}
-              </Text>
-            </View>
-            <Text className="text-gray-400 text-xs mt-0.5" numberOfLines={1}>
-              {host.ip}
-              {host.username ? `  •  ${host.username}` : ""}
-            </Text>
-          </View>
-          <TouchableOpacity
-            className="bg-dark-bg rounded-md p-1 border-2 border-dark-border"
-            onPress={handleHostPress}
-          >
-            <MoreVertical size={16} color="#9CA3AF" />
-          </TouchableOpacity>
-        </View>
-
-        {host.tags && host.tags.length > 0 && (
+        <View className="flex-row items-start">
           <View
-            className="mt-2"
-            onLayout={(e) => setTagsContainerWidth(e.nativeEvent.layout.width)}
+            className="mr-3 items-center justify-center rounded-md border"
+            style={{
+              width: 42,
+              height: 42,
+              backgroundColor: BACKGROUNDS.DARKER,
+              borderColor: BORDER_COLORS.PRIMARY,
+            }}
           >
+            <Terminal size={20} color={TEXT_COLORS.PRIMARY} />
             <View
-              className="flex-row items-center"
-              style={{ flexWrap: "nowrap", overflow: "hidden" }}
+              className="absolute right-[-2px] top-[-2px] rounded-full"
+              style={{
+                width: 10,
+                height: 10,
+                backgroundColor: meta.color,
+                shadowColor: meta.color,
+                shadowOpacity: 0.4,
+                shadowRadius: 5,
+              }}
+            />
+          </View>
+
+          <View className="min-w-0 flex-1">
+            <View className="flex-row items-center">
+              <Text
+                className="flex-1 text-base font-semibold"
+                numberOfLines={1}
+                style={{ color: TEXT_COLORS.PRIMARY }}
+              >
+                {host.name || host.ip}
+              </Text>
+              <TouchableOpacity
+                onPress={(event) => {
+                  event.stopPropagation();
+                  setShowContextMenu(true);
+                }}
+                activeOpacity={0.7}
+                className="ml-2 rounded-md border p-2"
+                style={{
+                  backgroundColor: BACKGROUNDS.DARKER,
+                  borderColor: BORDER_COLORS.SECONDARY,
+                }}
+              >
+                <MoreVertical size={16} color={TEXT_COLORS.SECONDARY} />
+              </TouchableOpacity>
+            </View>
+
+            <Text
+              className="mt-1 font-mono text-xs"
+              numberOfLines={1}
+              style={{ color: TEXT_COLORS.SECONDARY }}
             >
-              {(() => {
-                const chips: any[] = [];
-                if (!tagsContainerWidth) return null;
-                const horizontalGap = 6;
-                const basePadding = 16;
-                const borderAllowance = 6;
-                const avgCharPx = 7;
-                let used = 0;
-                let shown = 0;
-                for (let i = 0; i < host.tags.length; i++) {
-                  const tag = String(host.tags[i]);
-                  const tagWidth =
-                    basePadding +
-                    borderAllowance +
-                    Math.ceil(tag.length * avgCharPx);
-                  const remainingCount = host.tags.length - (shown + 1);
-                  const moreLabel =
-                    remainingCount > 0 ? `+${remainingCount} more` : "";
-                  const moreWidth =
-                    remainingCount > 0
-                      ? basePadding +
-                        borderAllowance +
-                        Math.ceil(moreLabel.length * avgCharPx)
-                      : 0;
-                  const sep = shown > 0 ? horizontalGap : 0;
-                  if (
-                    used +
-                      sep +
-                      tagWidth +
-                      (remainingCount > 0 ? horizontalGap + moreWidth : 0) <=
-                    tagsContainerWidth
-                  ) {
-                    used += sep + tagWidth;
-                    chips.push(
-                      <View
-                        key={`tag-${i}`}
-                        className="bg-dark-bg-button px-2 py-1 rounded-md border border-dark-border mr-[6px]"
-                      >
-                        <Text className="text-white text-xs" numberOfLines={1}>
-                          {tag}
-                        </Text>
-                      </View>,
-                    );
-                    shown += 1;
-                  } else {
-                    break;
-                  }
-                }
-                const hidden = host.tags.length - shown;
-                if (hidden > 0) {
-                  const label = `+${hidden} more`;
-                  chips.push(
-                    <View
-                      key="tag-more"
-                      className="bg-dark-bg-button px-2 py-1 rounded-md border border-dark-border"
-                    >
-                      <Text className="text-gray-300 text-xs" numberOfLines={1}>
-                        {label}
-                      </Text>
-                    </View>,
-                  );
-                } else if (chips.length > 0) {
-                  const last = chips.pop();
-                  if (last) {
-                    chips.push(
-                      <View
-                        key={(last as any).key}
-                        className="bg-dark-bg-button px-2 py-1 rounded-md border border-dark-border"
-                      >
-                        {(last as any).props.children}
-                      </View>,
-                    );
-                  }
-                }
-                return chips;
-              })()}
+              {endpoint(host)}
+            </Text>
+
+            <View className="mt-3 flex-row flex-wrap items-center">
+              <View
+                className="mr-1.5 rounded border px-2 py-1"
+                style={{
+                  backgroundColor: meta.muted,
+                  borderColor: meta.color,
+                }}
+              >
+                <Text
+                  className="text-[11px] font-bold"
+                  style={{ color: meta.color }}
+                >
+                  {meta.label}
+                </Text>
+              </View>
+
+              <View
+                className="mr-1.5 rounded border px-2 py-1"
+                style={{
+                  backgroundColor: BACKGROUNDS.DARKER,
+                  borderColor: BORDER_COLORS.SECONDARY,
+                }}
+              >
+                <Text
+                  className="text-[11px]"
+                  style={{ color: TEXT_COLORS.SECONDARY }}
+                >
+                  {host.authType}
+                </Text>
+              </View>
+
+              {visibleTags.map((tag) => (
+                <View
+                  key={tag}
+                  className="mr-1.5 rounded border px-2 py-1"
+                  style={{
+                    backgroundColor: BACKGROUNDS.DARKER,
+                    borderColor: BORDER_COLORS.SECONDARY,
+                  }}
+                >
+                  <Text
+                    className="text-[11px]"
+                    style={{ color: TEXT_COLORS.SECONDARY }}
+                  >
+                    {tag}
+                  </Text>
+                </View>
+              ))}
+
+              {hiddenTagCount > 0 && (
+                <Text
+                  className="text-[11px]"
+                  style={{ color: TEXT_COLORS.TERTIARY }}
+                >
+                  +{hiddenTagCount}
+                </Text>
+              )}
             </View>
           </View>
-        )}
+        </View>
       </TouchableOpacity>
 
       <Modal
         visible={showContextMenu}
-        transparent={true}
+        transparent
         animationType="fade"
-        onRequestClose={handleCloseContextMenu}
+        onRequestClose={() => setShowContextMenu(false)}
         supportedOrientations={["portrait", "landscape"]}
       >
-        <TouchableWithoutFeedback onPress={handleCloseContextMenu}>
-          <View className="flex-1 bg-black/50 justify-end">
+        <TouchableWithoutFeedback onPress={() => setShowContextMenu(false)}>
+          <View className="flex-1 justify-end bg-black/60">
             <TouchableWithoutFeedback onPress={() => {}}>
               <View
-                className="bg-dark-bg-button rounded-t-2xl border-t-2 border-x-2 border-dark-border px-4 pt-4"
+                className="border-t border-x px-4 pt-4"
                 style={{
                   maxHeight: "80%",
                   paddingBottom: Math.max(insets.bottom, 16),
+                  backgroundColor: BACKGROUNDS.CARD,
+                  borderColor: BORDER_COLORS.SECONDARY,
+                  borderTopLeftRadius: 16,
+                  borderTopRightRadius: 16,
                 }}
               >
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-row items-center">
-                    <View
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 10,
-                        backgroundColor: getStatusPalette().main,
-                        borderWidth: 1,
-                        borderColor: getStatusPalette().border,
-                      }}
-                    />
-                    <Text className="text-white font-semibold text-base ml-2">
-                      {host.name}
+                <View className="mb-4 flex-row items-center justify-between">
+                  <View className="min-w-0 flex-1">
+                    <View className="flex-row items-center">
+                      <View
+                        className="mr-2 rounded-full"
+                        style={{
+                          width: 9,
+                          height: 9,
+                          backgroundColor: meta.color,
+                        }}
+                      />
+                      <Text
+                        className="flex-1 text-lg font-semibold"
+                        numberOfLines={1}
+                        style={{ color: TEXT_COLORS.PRIMARY }}
+                      >
+                        {host.name || host.ip}
+                      </Text>
+                    </View>
+                    <Text
+                      className="mt-1 font-mono text-xs"
+                      numberOfLines={1}
+                      style={{ color: TEXT_COLORS.TERTIARY }}
+                    >
+                      {endpoint(host)}
                     </Text>
                   </View>
+
                   <TouchableOpacity
-                    className="bg-dark-bg rounded-md p-1 border-2 border-dark-border"
-                    onPress={handleCloseContextMenu}
+                    className="ml-3 rounded-md border p-2"
+                    style={{
+                      backgroundColor: BACKGROUNDS.DARKER,
+                      borderColor: BORDER_COLORS.SECONDARY,
+                    }}
+                    onPress={() => setShowContextMenu(false)}
                   >
-                    <X size={16} color="white" />
+                    <X size={16} color={TEXT_COLORS.PRIMARY} />
                   </TouchableOpacity>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <View className="gap-2">
-                    {host.enableTerminal && (
+                    {actionRows.map((row) => (
                       <TouchableOpacity
-                        onPress={handleTerminalPress}
-                        className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
-                        activeOpacity={0.7}
+                        key={row.key}
+                        onPress={row.onPress}
+                        className="flex-row items-center rounded-md border p-3"
+                        activeOpacity={0.72}
+                        style={{
+                          backgroundColor: BACKGROUNDS.DARKER,
+                          borderColor: BORDER_COLORS.SECONDARY,
+                        }}
                       >
-                        <Terminal size={20} color="white" />
-                        <View className="flex-1">
-                          <Text className="text-white font-medium">
-                            Open SSH Terminal
-                          </Text>
-                          <Text
-                            className="text-gray-400 text-xs"
-                            numberOfLines={1}
-                          >
-                            {host.ip}
-                            {host.username ? `  •  ${host.username}` : ""}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    )}
-
-                    {parsedStatsConfig.metricsEnabled && (
-                      <TouchableOpacity
-                        onPress={handleStatsPress}
-                        className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
-                        activeOpacity={0.7}
-                      >
-                        <Activity size={20} color="#FFFFFF" />
-                        <View className="flex-1">
-                          <Text className="text-white font-medium">
-                            View Server Stats
-                          </Text>
-                          <Text
-                            className="text-gray-400 text-xs"
-                            numberOfLines={1}
-                          >
-                            Monitor CPU, memory, and disk usage
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    )}
-
-                    {host.enableFileManager && (
-                      <TouchableOpacity
-                        onPress={handleFileManagerPress}
-                        className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
-                        activeOpacity={0.7}
-                      >
-                        <FolderOpen size={20} color="#FFFFFF" />
-                        <View className="flex-1">
-                          <Text className="text-white font-medium">
-                            File Manager
-                          </Text>
-                          <Text
-                            className="text-gray-400 text-xs"
-                            numberOfLines={1}
-                          >
-                            Browse and manage files
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity
-                      onPress={handleTunnelPress}
-                      className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
-                      activeOpacity={0.7}
-                    >
-                      <Activity size={20} color="#FFFFFF" />
-                      <View className="flex-1">
-                        <Text className="text-white font-medium">
-                          Port Forwarding
-                        </Text>
-                        <Text
-                          className="text-gray-400 text-xs"
-                          numberOfLines={1}
+                        <View
+                          className="mr-3 items-center justify-center rounded-md border"
+                          style={{
+                            width: 38,
+                            height: 38,
+                            backgroundColor: BACKGROUNDS.BUTTON,
+                            borderColor: BORDER_COLORS.PRIMARY,
+                          }}
                         >
-                          Create, edit, delete, and control SSH tunnels
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      className="flex-row items-center gap-3 p-3 rounded-md bg-dark-bg-darker border border-dark-border"
-                      onPress={closeContextMenu}
-                      activeOpacity={0.7}
-                    >
-                      <X size={20} color="white" />
-                      <Text className="text-white font-medium">Close</Text>
-                    </TouchableOpacity>
+                          {row.icon}
+                        </View>
+                        <View className="min-w-0 flex-1">
+                          <Text
+                            className="font-semibold"
+                            style={{ color: TEXT_COLORS.PRIMARY }}
+                          >
+                            {row.title}
+                          </Text>
+                          <Text
+                            className="mt-0.5 text-xs"
+                            numberOfLines={1}
+                            style={{ color: TEXT_COLORS.TERTIARY }}
+                          >
+                            {row.subtitle}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </ScrollView>
               </View>
@@ -460,5 +387,3 @@ function Host({ host, status, isLast = false }: HostProps) {
     </>
   );
 }
-
-export default Host;

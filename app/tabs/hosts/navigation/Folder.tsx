@@ -1,7 +1,14 @@
-import { View, Text, TouchableOpacity, Animated } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Text, TouchableOpacity, View } from "react-native";
+import { ChevronDown, Folder as FolderIcon } from "lucide-react-native";
+
 import Host from "@/app/tabs/hosts/navigation/Host";
-import { ChevronDown } from "lucide-react-native";
-import { useState, useRef, useEffect } from "react";
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
 import { SSHHost } from "@/types";
 
 interface FolderProps {
@@ -14,14 +21,10 @@ export default function Folder({ name, hosts, getHostStatus }: FolderProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const rotateValue = useRef(new Animated.Value(0)).current;
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   useEffect(() => {
     Animated.timing(rotateValue, {
       toValue: isExpanded ? 0 : 1,
-      duration: 200,
+      duration: 160,
       useNativeDriver: true,
     }).start();
   }, [isExpanded, rotateValue]);
@@ -33,44 +36,70 @@ export default function Folder({ name, hosts, getHostStatus }: FolderProps) {
 
   return (
     <View
-      className={`mb-3 w-full h-auto border-2 border-dark-border rounded-md overflow-hidden`}
+      className="w-full overflow-hidden rounded-md border"
+      style={{
+        backgroundColor: BACKGROUNDS.CARD,
+        borderColor: BORDER_COLORS.SECONDARY,
+        borderRadius: RADIUS.CARD,
+      }}
     >
-      <View
-        className={`bg-dark-bg-header ${isExpanded ? "border-b-2 border-dark-border" : ""}`}
+      <TouchableOpacity
+        onPress={() => setIsExpanded((value) => !value)}
+        className="flex-row items-center justify-between px-3 py-3"
+        activeOpacity={0.75}
+        style={{
+          borderBottomWidth: isExpanded ? 1 : 0,
+          borderBottomColor: BORDER_COLORS.SECONDARY,
+          backgroundColor: BACKGROUNDS.HEADER,
+        }}
       >
-        <TouchableOpacity
-          onPress={toggleExpanded}
-          className="flex-row items-center justify-between p-3"
-          activeOpacity={0.7}
+        <View className="min-w-0 flex-1 flex-row items-center">
+          <FolderIcon size={18} color={TEXT_COLORS.PRIMARY} />
+          <Text
+            className="ml-2 flex-1 text-base font-semibold"
+            numberOfLines={1}
+            style={{ color: TEXT_COLORS.PRIMARY }}
+          >
+            {name}
+          </Text>
+          <Text
+            className="ml-2 text-xs"
+            style={{ color: TEXT_COLORS.TERTIARY }}
+          >
+            {hosts.length}
+          </Text>
+        </View>
+        <View
+          className="ml-3 items-center justify-center rounded-md border"
+          style={{
+            width: 30,
+            height: 30,
+            backgroundColor: BACKGROUNDS.BUTTON,
+            borderColor: BORDER_COLORS.BUTTON,
+          }}
         >
-          <View className="flex-row items-center flex-1">
-            <Text className="text-lg font-bold text-white" numberOfLines={1}>
-              {name}
-            </Text>
-            <Text className="text-sm text-gray-400 ml-3">
-              {hosts.length} host{hosts.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-          <View className="bg-dark-bg-button rounded-md border-2 border-dark-border w-[30px] h-[30px] items-center justify-center ml-2">
-            <Animated.View style={{ transform: [{ rotate }] }}>
-              <ChevronDown size={16} color="white" />
-            </Animated.View>
-          </View>
-        </TouchableOpacity>
-      </View>
+          <Animated.View style={{ transform: [{ rotate }] }}>
+            <ChevronDown size={16} color={TEXT_COLORS.PRIMARY} />
+          </Animated.View>
+        </View>
+      </TouchableOpacity>
+
       {isExpanded && (
-        <View className="bg-dark-bg p-3">
+        <View className="p-3">
           {hosts.length === 0 ? (
-            <View className="py-4 px-4">
-              <Text className="text-white text-center">
-                No hosts in this folder
+            <View className="px-4 py-4">
+              <Text
+                className="text-center"
+                style={{ color: TEXT_COLORS.SECONDARY }}
+              >
+                No servers in this folder
               </Text>
             </View>
           ) : (
             hosts.map((host, index) => (
               <View
                 key={host.id}
-                className={`${index < hosts.length - 1 ? "mb-2" : ""}`}
+                style={{ marginBottom: index < hosts.length - 1 ? 8 : 0 }}
               >
                 <Host
                   host={host}

@@ -213,7 +213,6 @@ export function FileViewer({
             multiline
             editable={!readOnly}
             scrollEnabled={true}
-            showsVerticalScrollIndicator={true}
             style={{
               fontFamily: MONOSPACE_FONT,
               fontSize: 14,

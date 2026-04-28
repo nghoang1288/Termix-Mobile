@@ -20,14 +20,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#22c55e",
-        tabBarInactiveTintColor: "#5a5a5d",
+        tabBarActiveTintColor: "#38bdf8",
+        tabBarInactiveTintColor: "#7f8a98",
         tabBarStyle: shouldHideMainTabBar
           ? { display: "none" }
           : {
-              backgroundColor: "#0e0e10",
+              backgroundColor: "#171b21",
               borderTopWidth: 1.5,
-              borderTopColor: "#303032",
+              borderTopColor: "#2b323c",
               paddingBottom: insets.bottom,
               height: tabBarHeight + insets.bottom,
             },

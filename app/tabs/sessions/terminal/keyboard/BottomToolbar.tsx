@@ -8,6 +8,7 @@ import {
   BORDERS,
   BORDER_COLORS,
   BACKGROUNDS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 
 type ToolbarMode = "keyboard" | "snippets";
@@ -42,28 +43,33 @@ export default function BottomToolbar({
   return (
     <View className="bg-dark-bg-darkest" pointerEvents="box-none">
       <View
-        className="flex-row bg-dark-bg-darkest"
+        className="flex-row"
         style={{
           height: TAB_BAR_HEIGHT,
           borderBottomWidth: BORDERS.STANDARD,
           borderBottomColor: BORDER_COLORS.SECONDARY,
+          backgroundColor: BACKGROUNDS.DARKER,
         }}
       >
         {tabs.map((tab, index) => (
           <TouchableOpacity
             key={tab.id}
-            className="flex-1 items-center justify-center py-1.5 px-1 bg-dark-bg-darkest"
+            className="flex-1 items-center justify-center px-1 py-1.5"
             onPress={() => setMode(tab.id)}
             style={{
+              backgroundColor:
+                mode === tab.id ? BACKGROUNDS.BUTTON : BACKGROUNDS.DARKER,
               borderRightWidth:
                 index !== tabs.length - 1 ? BORDERS.STANDARD : 0,
               borderRightColor: BORDER_COLORS.SECONDARY,
             }}
           >
             <Text
-              className={`text-[10px] font-bold tracking-wide text-center leading-[14px] ${
-                mode === tab.id ? "text-gray-200" : "text-gray-600"
-              }`}
+              className="text-center text-[10px] font-bold leading-[14px] tracking-wide"
+              style={{
+                color:
+                  mode === tab.id ? TEXT_COLORS.PRIMARY : TEXT_COLORS.TERTIARY,
+              }}
             >
               {tab.label}
             </Text>

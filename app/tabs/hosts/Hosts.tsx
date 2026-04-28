@@ -1,28 +1,35 @@
 import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
-  View,
-  ActivityIndicator,
-  Alert,
   TouchableOpacity,
-  RefreshControl,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useState, useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { RefreshCw } from "lucide-react-native";
+import { CircleDot, RefreshCw, Search, Zap } from "lucide-react-native";
+
 import Folder from "@/app/tabs/hosts/navigation/Folder";
 import {
-  getSSHHosts,
-  getFoldersWithStats,
   getAllServerStatuses,
-  initializeServerConfig,
   getCurrentServerUrl,
+  getFoldersWithStats,
+  getSSHHosts,
+  initializeServerConfig,
 } from "@/app/main-axios";
-import { SSHHost, ServerStatus } from "@/types";
+import { getResponsivePadding } from "@/app/utils/responsive";
 import { useOrientation } from "@/app/utils/orientation";
-import { getResponsivePadding, getColumnCount } from "@/app/utils/responsive";
+import {
+  BACKGROUNDS,
+  BORDER_COLORS,
+  RADIUS,
+  TEXT_COLORS,
+} from "@/app/constants/designTokens";
+import { ServerStatus, SSHHost } from "@/types";
 
 interface FolderData {
   name: string;
@@ -36,20 +43,29 @@ interface FolderData {
   };
 }
 
+type HostFilter = "all" | "online" | "failed" | "pinned";
+
+const filters: { id: HostFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "online", label: "Online" },
+  { id: "failed", label: "Failed" },
+  { id: "pinned", label: "Pinned" },
+];
+
 export default function Hosts() {
   const insets = useSafeAreaInsets();
-  const { width, isLandscape } = useOrientation();
+  const { isLandscape } = useOrientation();
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<HostFilter>("all");
   const [serverStatuses, setServerStatuses] = useState<
     Record<number, ServerStatus>
   >({});
   const isRefreshingRef = useRef(false);
 
   const padding = getResponsivePadding(isLandscape);
-  const columnCount = getColumnCount(width, isLandscape, 400);
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefreshingRef.current) return;
@@ -96,7 +112,7 @@ export default function Hosts() {
       let foldersData = null;
       try {
         foldersData = await getFoldersWithStats();
-      } catch (error) {}
+      } catch {}
 
       const folderMap = new Map<string, FolderData>();
 
@@ -110,17 +126,22 @@ export default function Hosts() {
         });
       }
 
-      hosts.filter((host: SSHHost) => !host.connectionType || host.connectionType === "ssh").forEach((host: SSHHost) => {
-        const folderName = host.folder || "No Folder";
-        if (!folderMap.has(folderName)) {
-          folderMap.set(folderName, {
-            name: folderName,
-            hosts: [],
-            stats: { totalHosts: 0, hostsByType: [] },
-          });
-        }
-        folderMap.get(folderName)!.hosts.push(host);
-      });
+      hosts
+        .filter(
+          (host: SSHHost) =>
+            !host.connectionType || host.connectionType === "ssh",
+        )
+        .forEach((host: SSHHost) => {
+          const folderName = host.folder || "No Folder";
+          if (!folderMap.has(folderName)) {
+            folderMap.set(folderName, {
+              name: folderName,
+              hosts: [],
+              stats: { totalHosts: 0, hostsByType: [] },
+            });
+          }
+          folderMap.get(folderName)!.hosts.push(host);
+        });
 
       const foldersArray = Array.from(folderMap.values()).sort((a, b) => {
         if (a.name === "No Folder") return 1;
@@ -138,8 +159,7 @@ export default function Hosts() {
         error?.status === 401 ||
         error?.message?.includes("Authentication required");
 
-      if (isAuthError) {
-      } else {
+      if (!isAuthError) {
         const errorMessage =
           error?.message ||
           "Failed to load hosts. Please check your connection and try again.";
@@ -164,108 +184,294 @@ export default function Hosts() {
     }, [fetchData]),
   );
 
-  const filteredFolders = folders
-    .map((folder) => ({
-      ...folder,
-      hosts: folder.hosts.filter(
-        (host) =>
-          host.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          host.ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          host.username.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
-    }))
-    .filter((folder) => folder.hosts.length > 0 || searchQuery === "");
+  const getHostStatus = useCallback(
+    (hostId: number): "online" | "offline" | "unknown" => {
+      const status = serverStatuses[hostId];
+      if (!status) return "unknown";
+      return status.status;
+    },
+    [serverStatuses],
+  );
 
-  const getHostStatus = (hostId: number): "online" | "offline" | "unknown" => {
-    const status = serverStatuses[hostId];
-    if (!status) return "unknown";
-    return status.status;
-  };
+  const allHosts = useMemo(
+    () => folders.flatMap((folder) => folder.hosts),
+    [folders],
+  );
+  const onlineCount = allHosts.filter(
+    (host) => getHostStatus(host.id) === "online",
+  ).length;
+  const failedCount = allHosts.filter(
+    (host) => getHostStatus(host.id) === "offline",
+  ).length;
+  const pinnedCount = allHosts.filter((host) => host.pin).length;
+
+  const filteredFolders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return folders
+      .map((folder) => ({
+        ...folder,
+        hosts: folder.hosts.filter((host) => {
+          const status = getHostStatus(host.id);
+          if (activeFilter === "online" && status !== "online") return false;
+          if (activeFilter === "failed" && status === "online") return false;
+          if (activeFilter === "pinned" && !host.pin) return false;
+
+          if (!query) return true;
+          const searchable = [
+            host.name,
+            host.ip,
+            host.username,
+            host.folder,
+            host.authType,
+            ...(host.tags || []),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return searchable.includes(query);
+        }),
+      }))
+      .filter((folder) => folder.hosts.length > 0 || query === "");
+  }, [activeFilter, folders, getHostStatus, searchQuery]);
 
   if (loading) {
     return (
       <View
-        className="flex-1 bg-dark-bg px-6 justify-center items-center"
-        style={{ paddingTop: insets.top + 24 }}
+        className="flex-1 items-center justify-center px-6"
+        style={{
+          backgroundColor: BACKGROUNDS.DARK,
+          paddingTop: insets.top + 24,
+        }}
       >
-        <ActivityIndicator size="large" color="#22C55E" />
-        <Text className="text-white mt-4">Loading hosts...</Text>
+        <ActivityIndicator size="large" color={TEXT_COLORS.ACCENT} />
+        <Text
+          className="mt-4 font-semibold"
+          style={{ color: TEXT_COLORS.PRIMARY }}
+        >
+          Loading servers...
+        </Text>
       </View>
     );
   }
 
   return (
     <View
-      className="flex-1 bg-dark-bg"
-      style={{ paddingTop: insets.top + 20, paddingHorizontal: padding }}
+      className="flex-1"
+      style={{
+        backgroundColor: BACKGROUNDS.DARK,
+        paddingTop: insets.top + 18,
+        paddingHorizontal: padding,
+      }}
     >
-      <View className="flex-1 gap-2">
+      <View className="mb-4">
         <View className="flex-row items-center justify-between">
-          <Text
-            className="text-white font-bold text-3xl"
-            style={{ lineHeight: 36, includeFontPadding: false }}
-          >
-            Hosts
-          </Text>
+          <View>
+            <View className="mb-2 flex-row items-center">
+              <CircleDot size={13} color="#34d399" />
+              <Text
+                className="ml-2 text-[11px] font-bold uppercase tracking-[2px]"
+                style={{ color: TEXT_COLORS.TERTIARY }}
+              >
+                Server launcher
+              </Text>
+            </View>
+            <Text
+              className="text-3xl font-bold"
+              style={{
+                color: TEXT_COLORS.PRIMARY,
+                lineHeight: 36,
+                includeFontPadding: false,
+              }}
+            >
+              Connect
+            </Text>
+          </View>
+
           <TouchableOpacity
             onPress={handleRefresh}
             disabled={refreshing || loading}
-            className={`bg-[#1a1a1a] p-2 rounded-md border border-[#303032] ${
-              refreshing || loading ? "opacity-50" : ""
-            }`}
+            className={`${refreshing || loading ? "opacity-50" : ""}`}
             activeOpacity={0.7}
+            style={{
+              width: 42,
+              height: 42,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: BACKGROUNDS.BUTTON,
+              borderColor: BORDER_COLORS.BUTTON,
+              borderWidth: 1,
+              borderRadius: RADIUS.BUTTON,
+            }}
           >
             <RefreshCw
-              size={20}
-              color="#22c55e"
+              size={19}
+              color={TEXT_COLORS.ACCENT}
               style={{
                 transform: [{ rotate: refreshing ? "180deg" : "0deg" }],
               }}
             />
           </TouchableOpacity>
         </View>
+
+        <View className="mt-4 flex-row gap-2">
+          <View
+            className="flex-1 rounded-md border px-3 py-3"
+            style={{
+              backgroundColor: BACKGROUNDS.CARD,
+              borderColor: BORDER_COLORS.SECONDARY,
+            }}
+          >
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
+              {allHosts.length}
+            </Text>
+            <Text
+              className="mt-1 text-[11px]"
+              style={{ color: TEXT_COLORS.TERTIARY }}
+            >
+              {pinnedCount} pinned
+            </Text>
+          </View>
+          <View
+            className="flex-1 rounded-md border px-3 py-3"
+            style={{
+              backgroundColor: BACKGROUNDS.CARD,
+              borderColor: BORDER_COLORS.SECONDARY,
+            }}
+          >
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: "#34d399" }}
+            >
+              {onlineCount}
+            </Text>
+            <Text
+              className="mt-1 text-[11px]"
+              style={{ color: TEXT_COLORS.TERTIARY }}
+            >
+              Online
+            </Text>
+          </View>
+          <View
+            className="flex-1 rounded-md border px-3 py-3"
+            style={{
+              backgroundColor: BACKGROUNDS.CARD,
+              borderColor: BORDER_COLORS.SECONDARY,
+            }}
+          >
+            <Text
+              className="text-xl font-semibold"
+              style={{ color: "#fb7185" }}
+            >
+              {failedCount}
+            </Text>
+            <Text
+              className="mt-1 text-[11px]"
+              style={{ color: TEXT_COLORS.TERTIARY }}
+            >
+              Failed
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View
+        className="mb-3 flex-row items-center rounded-md border px-3"
+        style={{
+          height: 44,
+          backgroundColor: BACKGROUNDS.DARKEST,
+          borderColor: BORDER_COLORS.PRIMARY,
+        }}
+      >
+        <Search size={17} color={TEXT_COLORS.TERTIARY} />
         <TextInput
-          className="text-white w-full h-auto bg-[#1a1a1a] rounded-md border border-[#303032] px-3 py-2"
-          placeholder="Search hosts..."
-          placeholderTextColor="#9CA3AF"
+          className="ml-2 flex-1 text-base"
+          placeholder="Search by host, user, tag, folder"
+          placeholderTextColor={TEXT_COLORS.TERTIARY}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          style={{ color: TEXT_COLORS.PRIMARY }}
         />
-        <ScrollView
-          className="flex-1 w-full"
-          contentContainerStyle={{ flexGrow: 1, width: "100%", gap: "5px" }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
-              tintColor="#22c55e"
-              colors={["#22c55e"]}
-              progressBackgroundColor="transparent"
-              titleColor="#ffffff"
-            />
-          }
-        >
-          {filteredFolders.length === 0 ? (
-            <View className="flex-1 justify-center items-center py-8">
-              <Text className="text-gray-400 text-lg">
-                {searchQuery
-                  ? "No hosts found matching your search"
-                  : "No hosts configured"}
-              </Text>
-            </View>
-          ) : (
-            filteredFolders.map((folder, index) => (
-              <Folder
-                key={folder.name}
-                name={folder.name}
-                hosts={folder.hosts}
-                getHostStatus={getHostStatus}
-              />
-            ))
-          )}
-        </ScrollView>
       </View>
+
+      <View className="mb-3 flex-row gap-2">
+        {filters.map((filter) => {
+          const active = activeFilter === filter.id;
+          return (
+            <TouchableOpacity
+              key={filter.id}
+              onPress={() => setActiveFilter(filter.id)}
+              activeOpacity={0.75}
+              className="flex-1 items-center rounded-md border py-2"
+              style={{
+                backgroundColor: active ? BACKGROUNDS.ACTIVE : BACKGROUNDS.CARD,
+                borderColor: active
+                  ? BORDER_COLORS.ACTIVE
+                  : BORDER_COLORS.SECONDARY,
+              }}
+            >
+              <Text
+                className="text-xs font-bold"
+                style={{
+                  color: active ? TEXT_COLORS.PRIMARY : TEXT_COLORS.SECONDARY,
+                }}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: Math.max(insets.bottom, 16) + 10,
+          gap: 10,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={TEXT_COLORS.ACCENT}
+            colors={[TEXT_COLORS.ACCENT]}
+            progressBackgroundColor={BACKGROUNDS.CARD}
+            titleColor={TEXT_COLORS.PRIMARY}
+          />
+        }
+      >
+        {filteredFolders.length === 0 ? (
+          <View className="flex-1 items-center justify-center py-8">
+            <Zap size={36} color={TEXT_COLORS.TERTIARY} />
+            <Text
+              className="mt-3 text-base font-semibold"
+              style={{ color: TEXT_COLORS.PRIMARY }}
+            >
+              {searchQuery ? "No matching servers" : "No servers configured"}
+            </Text>
+            <Text
+              className="mt-1 text-sm"
+              style={{ color: TEXT_COLORS.TERTIARY }}
+            >
+              Adjust search or sync servers from the web app.
+            </Text>
+          </View>
+        ) : (
+          filteredFolders.map((folder) => (
+            <Folder
+              key={folder.name}
+              name={folder.name}
+              hosts={folder.hosts}
+              getHostStatus={getHostStatus}
+            />
+          ))
+        )}
+      </ScrollView>
     </View>
   );
 }

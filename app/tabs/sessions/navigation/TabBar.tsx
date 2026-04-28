@@ -25,6 +25,7 @@ import {
   BORDER_COLORS,
   BACKGROUNDS,
   RADIUS,
+  TEXT_COLORS,
 } from "@/app/constants/designTokens";
 
 interface TabBarProps {
@@ -184,9 +185,12 @@ export default function TabBar({
                   >
                     <View className="flex-1 px-3 py-2">
                       <Text
-                        className={`text-sm font-medium ${
-                          isActive ? "text-green-400" : "text-gray-400"
-                        }`}
+                        className="text-sm font-medium"
+                        style={{
+                          color: isActive
+                            ? TEXT_COLORS.ACCENT
+                            : TEXT_COLORS.TERTIARY,
+                        }}
                       >
                         {session.title}
                       </Text>
