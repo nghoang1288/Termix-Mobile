@@ -2,11 +2,7 @@ import React from "react";
 import { TouchableOpacity, Text } from "react-native";
 import * as Haptics from "expo-haptics";
 import { KeySize } from "@/types/keyboard";
-import {
-  BACKGROUNDS,
-  BORDER_COLORS,
-  RADIUS,
-} from "@/app/constants/designTokens";
+import { RADIUS } from "@/app/constants/designTokens";
 
 interface KeyboardKeyProps {
   label: string;
@@ -76,9 +72,9 @@ export default function KeyboardKey({
       className={`items-center justify-center shadow-sm ${getSizeClass()}`}
       style={{
         ...style,
-        backgroundColor: isActive ? BACKGROUNDS.ACTIVE : BACKGROUNDS.BUTTON,
+        backgroundColor: isActive ? "#f7f4ed" : "rgba(252,251,248,0.08)",
         borderWidth: 1,
-        borderColor: isActive ? BORDER_COLORS.ACTIVE : BORDER_COLORS.BUTTON,
+        borderColor: isActive ? "#f7f4ed" : "rgba(252,251,248,0.12)",
         borderRadius: RADIUS.BUTTON,
       }}
       onPress={handlePress}
@@ -87,8 +83,11 @@ export default function KeyboardKey({
       delayLongPress={500}
     >
       <Text
-        className={`text-white font-medium text-center ${getTextSizeClass()}`}
-        style={textStyle}
+        className={`font-medium text-center ${getTextSizeClass()}`}
+        style={{
+          color: isActive ? "#1c1c1c" : "#fcfbf8",
+          ...textStyle,
+        }}
       >
         {label}
       </Text>

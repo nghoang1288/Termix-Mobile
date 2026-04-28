@@ -382,8 +382,8 @@ export default function Hosts() {
         className="mb-3 flex-row items-center rounded-md border px-3"
         style={{
           height: 44,
-          backgroundColor: BACKGROUNDS.DARKEST,
-          borderColor: BORDER_COLORS.PRIMARY,
+          backgroundColor: BACKGROUNDS.CARD,
+          borderColor: BORDER_COLORS.SECONDARY,
         }}
       >
         <Search size={17} color={TEXT_COLORS.TERTIARY} />
@@ -416,7 +416,7 @@ export default function Hosts() {
               <Text
                 className="text-xs font-bold"
                 style={{
-                  color: active ? TEXT_COLORS.PRIMARY : TEXT_COLORS.SECONDARY,
+                  color: active ? "#fcfbf8" : TEXT_COLORS.SECONDARY,
                 }}
               >
                 {filter.label}

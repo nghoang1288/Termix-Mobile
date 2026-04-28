@@ -24,17 +24,34 @@ function RootLayoutContent() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-dark-bg justify-center items-center">
-        <ActivityIndicator size="large" color="#22c55e" />
-        <Text className="text-white text-lg mt-4">Initializing...</Text>
+      <View className="flex-1 items-center justify-center bg-[#f7f4ed] px-6">
+        <View className="w-full max-w-sm rounded-2xl border border-[#eceae4] bg-[#fcfbf8] p-6">
+          <View className="mb-5 flex-row items-center">
+            <View className="h-11 w-11 items-center justify-center rounded-lg bg-[#1c1c1c]">
+              <Text className="font-mono text-sm font-bold text-[#fcfbf8]">
+                SB
+              </Text>
+            </View>
+            <View className="ml-3">
+              <Text className="text-base font-semibold text-[#1c1c1c]">
+                SSHBridge
+              </Text>
+              <Text className="text-xs text-[#5f5f5d]">Mobile terminal</Text>
+            </View>
+          </View>
+          <ActivityIndicator size="small" color="#1c1c1c" />
+          <Text className="mt-4 text-sm font-medium text-[#5f5f5d]">
+            Initializing command deck...
+          </Text>
+        </View>
         <TouchableOpacity
           onPress={() => {
             setShowLoginForm(true);
             setShowServerManager(false);
           }}
-          className="mt-6 px-6 py-3 bg-[#1a1a1a] border border-[#303032] rounded-lg"
+          className="mt-6 rounded-lg border border-[#1c1c1c66] px-6 py-3"
         >
-          <Text className="text-white font-semibold">Cancel</Text>
+          <Text className="font-semibold text-[#1c1c1c]">Cancel</Text>
         </TouchableOpacity>
       </View>
     );
@@ -50,11 +67,11 @@ function RootLayoutContent() {
 
   if (isAuthenticated) {
     return (
-      <View className="flex-1 bg-dark-bg">
+      <View className="flex-1 bg-[#f7f4ed]">
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: "#18181b" },
+            contentStyle: { backgroundColor: "#f7f4ed" },
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -78,13 +95,13 @@ export default function RootLayout() {
                 <KeyboardCustomizationProvider>
                   <RootLayoutContent />
                   <Toaster
-                    theme="dark"
+                    theme="light"
                     position="top-center"
                     toastOptions={{
                       style: {
-                        backgroundColor: "#18181b",
+                        backgroundColor: "#fcfbf8",
                         borderWidth: 1,
-                        borderColor: "#27272a",
+                        borderColor: "#eceae4",
                       },
                     }}
                     richColors={false}

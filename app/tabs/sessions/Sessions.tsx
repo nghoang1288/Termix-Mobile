@@ -138,8 +138,8 @@ export default function Sessions() {
   const CUSTOM_KEYBOARD_TAB_HEIGHT = 34;
   const COMMAND_BAR_HEIGHT = systemKeyboardVisible
     ? isLandscape
-      ? 36
-      : 42
+      ? 34
+      : 38
     : 78 + (keyboardIntentionallyHiddenRef.current ? 12 : 0);
   const terminalKeyboardOffset = systemKeyboardVisible
     ? currentKeyboardHeight
@@ -673,7 +673,7 @@ export default function Sessions() {
           >
             <Text
               style={{
-                color: "#ffffff",
+                color: "#1c1c1c",
                 fontSize: 20,
                 fontWeight: "600",
                 marginBottom: 12,
@@ -684,7 +684,7 @@ export default function Sessions() {
             </Text>
             <Text
               style={{
-                color: "#9CA3AF",
+                color: "#5f5f5d",
                 fontSize: 14,
                 lineHeight: 20,
                 textAlign: "center",
@@ -695,12 +695,12 @@ export default function Sessions() {
             </Text>
             <View
               style={{
-                backgroundColor: "#22C55E",
+                backgroundColor: "#1c1c1c",
                 paddingHorizontal: 32,
                 paddingVertical: 16,
                 borderRadius: 8,
                 borderWidth: 1,
-                borderColor: "#16A34A",
+                borderColor: "#1c1c1c",
                 minHeight: 48,
                 minWidth: 120,
                 justifyContent: "center",

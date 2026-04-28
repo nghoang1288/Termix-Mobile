@@ -2,12 +2,12 @@
   "expo": {
     "name": "SSHBridge",
     "slug": "sshbridge",
-    "version": "0.1",
+    "version": "0.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sshbridge",
     "githubUrl": "https://github.com/nghoang1288/SSHBridge-Mobile",
-    "backgroundColor": "#18181b",
+    "backgroundColor": "#f7f4ed",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -28,7 +28,7 @@
       "package": "com.nghoang.sshbridge",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#18181b"
+        "backgroundColor": "#f7f4ed"
       }
     },
     "web": {
@@ -40,12 +40,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#18181b",
+          "backgroundColor": "#f7f4ed",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "dark": {
             "image": "./assets/images/splash-icon.png",
-            "backgroundColor": "#18181b"
+            "backgroundColor": "#101010"
           }
         }
       ],

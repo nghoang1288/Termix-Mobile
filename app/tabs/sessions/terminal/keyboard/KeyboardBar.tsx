@@ -7,12 +7,7 @@ import { useKeyboardCustomization } from "@/app/contexts/KeyboardCustomizationCo
 import { KeyConfig } from "@/types/keyboard";
 import { useOrientation } from "@/app/utils/orientation";
 import { ALL_KEYS } from "./KeyDefinitions";
-import {
-  BACKGROUNDS,
-  BORDER_COLORS,
-  RADIUS,
-  TEXT_COLORS,
-} from "@/app/constants/designTokens";
+import { RADIUS } from "@/app/constants/designTokens";
 
 interface KeyboardBarProps {
   terminalRef: React.RefObject<TerminalHandle | null>;
@@ -105,16 +100,17 @@ export default function KeyboardBar({
     label: string;
     flex?: number;
   }[] = [
-    { key: ALL_KEYS.escape, label: "Esc" },
-    { key: ALL_KEYS.tab, label: "Tab" },
     { key: ALL_KEYS.ctrl, label: "Ctrl" },
     { key: ALL_KEYS.alt, label: "Alt" },
-    { key: ALL_KEYS.arrowLeft, label: "Left" },
-    { key: ALL_KEYS.arrowDown, label: "Down" },
-    { key: ALL_KEYS.arrowUp, label: "Up" },
-    { key: ALL_KEYS.arrowRight, label: "Right" },
+    { key: ALL_KEYS.escape, label: "Esc" },
+    { key: ALL_KEYS.tab, label: "Tab" },
     { key: ALL_KEYS.slash, label: "/" },
+    { key: ALL_KEYS.tilde, label: "~" },
     { key: ALL_KEYS.pipe, label: "|" },
+    { key: ALL_KEYS.arrowUp, label: "Up" },
+    { key: ALL_KEYS.arrowDown, label: "Down" },
+    { key: ALL_KEYS.arrowLeft, label: "Left" },
+    { key: ALL_KEYS.arrowRight, label: "Right" },
     { key: ALL_KEYS.paste, label: "Paste", flex: 1.35 },
   ];
 
@@ -152,8 +148,8 @@ export default function KeyboardBar({
           justifyContent: "center",
           borderRadius: RADIUS.BUTTON,
           borderWidth: 1,
-          borderColor: isActive ? BORDER_COLORS.ACTIVE : BORDER_COLORS.BUTTON,
-          backgroundColor: isActive ? BACKGROUNDS.ACTIVE : BACKGROUNDS.BUTTON,
+          borderColor: isActive ? "#f7f4ed" : "rgba(252,251,248,0.12)",
+          backgroundColor: isActive ? "#f7f4ed" : "rgba(252,251,248,0.08)",
         }}
       >
         <Text
@@ -161,7 +157,7 @@ export default function KeyboardBar({
           adjustsFontSizeToFit
           minimumFontScale={0.75}
           style={{
-            color: isActive ? TEXT_COLORS.PRIMARY : TEXT_COLORS.SECONDARY,
+            color: isActive ? "#1c1c1c" : "rgba(252,251,248,0.82)",
             fontSize: isLandscape ? 9 : 10,
             fontWeight: "700",
             textAlign: "center",
@@ -219,11 +215,11 @@ export default function KeyboardBar({
     return (
       <View
         style={{
-          backgroundColor: BACKGROUNDS.DARKER,
+          backgroundColor: "#101010",
           borderTopWidth: 1,
-          borderTopColor: BORDER_COLORS.SECONDARY,
+          borderTopColor: "rgba(252,251,248,0.1)",
           borderBottomWidth: 1,
-          borderBottomColor: BORDER_COLORS.SECONDARY,
+          borderBottomColor: "rgba(252,251,248,0.1)",
           paddingHorizontal: 5,
           paddingVertical: isLandscape ? 3 : 4,
         }}
@@ -245,7 +241,7 @@ export default function KeyboardBar({
     <View style={{ position: "relative" }}>
       <View
         style={{
-          backgroundColor: BACKGROUNDS.DARKER,
+          backgroundColor: "#101010",
           paddingBottom: isKeyboardIntentionallyHidden ? 12 : 0,
         }}
       >
@@ -256,7 +252,7 @@ export default function KeyboardBar({
             paddingHorizontal: 6,
             paddingVertical: isLandscape ? 3 : 4,
             borderBottomWidth: 1,
-            borderBottomColor: BORDER_COLORS.SECONDARY,
+            borderBottomColor: "rgba(252,251,248,0.1)",
           }}
         >
           {visibleKeys.map((key, index) => renderKey(key, index))}

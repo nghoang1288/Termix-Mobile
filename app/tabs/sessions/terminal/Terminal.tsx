@@ -377,7 +377,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         return buildCommandAutocompleteSuggestions(input, {
           history: commandHistoryRef.current,
           snippets: autocompleteSnippetsRef.current,
-          limit: 7,
+          limit: 3,
         });
       },
       [],
@@ -907,18 +907,18 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
-                  backgroundColor: BACKGROUNDS.CARD,
+                  backgroundColor: "rgba(16,16,16,0.86)",
                   borderRadius: 999,
                   paddingHorizontal: 12,
                   paddingVertical: 7,
                   borderWidth: 1,
-                  borderColor: BORDER_COLORS.PRIMARY,
+                  borderColor: "rgba(252,251,248,0.12)",
                 }}
               >
-                <ActivityIndicator size="small" color="#22C55E" />
+                <ActivityIndicator size="small" color="#f7f4ed" />
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color: "#fcfbf8",
                     fontSize: 12,
                     fontWeight: "600",
                   }}
@@ -945,19 +945,19 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
             >
               <View
                 style={{
-                  backgroundColor: BACKGROUNDS.CARD,
+                  backgroundColor: "#fcfbf8",
                   borderRadius: 12,
                   padding: 24,
                   alignItems: "center",
                   borderWidth: 1,
-                  borderColor: BORDER_COLORS.PRIMARY,
+                  borderColor: "#eceae4",
                   minWidth: 280,
                 }}
               >
-                <ActivityIndicator size="large" color="#22C55E" />
+                <ActivityIndicator size="large" color="#1c1c1c" />
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color: "#1c1c1c",
                     fontSize: 18,
                     fontWeight: "600",
                     marginTop: 16,
@@ -968,7 +968,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                 </Text>
                 <Text
                   style={{
-                    color: "#9CA3AF",
+                    color: "#5f5f5d",
                     fontSize: 14,
                     marginTop: 8,
                     textAlign: "center",
@@ -979,13 +979,13 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
                 {retryCount > 0 && (
                   <View
                     style={{
-                      backgroundColor: BACKGROUNDS.DARKER,
+                      backgroundColor: "#f7f4ed",
                       borderRadius: 8,
                       paddingHorizontal: 12,
                       paddingVertical: 6,
                       marginTop: 12,
                       borderWidth: 1,
-                      borderColor: BORDER_COLORS.PRIMARY,
+                      borderColor: "#eceae4",
                     }}
                   >
                     <Text

@@ -88,41 +88,41 @@ export default function Settings() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-dark-bg">
+    <ScrollView className="flex-1 bg-[#f7f4ed]">
       <View style={{ padding, paddingTop: insets.top + 20 }}>
         <Text
-          className="text-3xl font-bold text-white mb-6"
+          className="mb-6 text-3xl font-semibold text-[#1c1c1c]"
           style={{ lineHeight: 36, includeFontPadding: false }}
         >
           Settings
         </Text>
 
         <View className="mb-6">
-          <Text className="text-white text-lg font-semibold mb-3">
+          <Text className="mb-3 text-lg font-semibold text-[#1c1c1c]">
             Terminal
           </Text>
           <TouchableOpacity
             onPress={() =>
               router.push("/tabs/settings/TerminalCustomization" as any)
             }
-            className="bg-[#1a1a1a] border border-[#303032] px-6 py-4 rounded-lg flex-row items-center justify-between"
+            className="flex-row items-center justify-between rounded-lg border border-[#eceae4] bg-[#fcfbf8] px-6 py-4"
           >
             <View>
-              <Text className="text-white font-semibold text-base">
+              <Text className="text-base font-semibold text-[#1c1c1c]">
                 Customize Terminal
               </Text>
-              <Text className="text-gray-400 text-sm mt-1">
+              <Text className="mt-1 text-sm text-[#5f5f5d]">
                 Font size and appearance
               </Text>
             </View>
-            <Text className="text-green-500 text-xl">{">"}</Text>
+            <Text className="text-xl text-[#1c1c1c]">{">"}</Text>
           </TouchableOpacity>
 
-          <View className="mt-3 bg-[#1a1a1a] border border-[#303032] px-4 py-4 rounded-lg">
-            <Text className="text-white font-semibold text-base">
+          <View className="mt-3 rounded-lg border border-[#eceae4] bg-[#fcfbf8] px-4 py-4">
+            <Text className="text-base font-semibold text-[#1c1c1c]">
               SSH Connection Mode
             </Text>
-            <Text className="text-gray-400 text-sm mt-1 mb-3">
+            <Text className="mb-3 mt-1 text-sm text-[#5f5f5d]">
               Applies to terminal sessions and tunnels.
             </Text>
 
@@ -130,14 +130,26 @@ export default function Settings() {
               onPress={() => saveTerminalConnectionMode("direct")}
               className={`px-4 py-3 rounded-lg border mb-2 ${
                 terminalConnectionMode === "direct"
-                  ? "border-green-500 bg-green-500/10"
-                  : "border-[#303032] bg-[#111113]"
+                  ? "border-[#1c1c1c] bg-[#1c1c1c]"
+                  : "border-[#eceae4] bg-[#f7f4ed]"
               }`}
             >
-              <Text className="text-white font-semibold">
+              <Text
+                className={`font-semibold ${
+                  terminalConnectionMode === "direct"
+                    ? "text-[#fcfbf8]"
+                    : "text-[#1c1c1c]"
+                }`}
+              >
                 Direct from phone
               </Text>
-              <Text className="text-gray-400 text-sm mt-1">
+              <Text
+                className={`mt-1 text-sm ${
+                  terminalConnectionMode === "direct"
+                    ? "text-[#ded8c9]"
+                    : "text-[#5f5f5d]"
+                }`}
+              >
                 The Android device opens SSH and local port forwards itself.
               </Text>
             </TouchableOpacity>
@@ -146,14 +158,26 @@ export default function Settings() {
               onPress={() => saveTerminalConnectionMode("relay")}
               className={`px-4 py-3 rounded-lg border ${
                 terminalConnectionMode === "relay"
-                  ? "border-green-500 bg-green-500/10"
-                  : "border-[#303032] bg-[#111113]"
+                  ? "border-[#1c1c1c] bg-[#1c1c1c]"
+                  : "border-[#eceae4] bg-[#f7f4ed]"
               }`}
             >
-              <Text className="text-white font-semibold">
+              <Text
+                className={`font-semibold ${
+                  terminalConnectionMode === "relay"
+                    ? "text-[#fcfbf8]"
+                    : "text-[#1c1c1c]"
+                }`}
+              >
                 Via SSHBridge server
               </Text>
-              <Text className="text-gray-400 text-sm mt-1">
+              <Text
+                className={`mt-1 text-sm ${
+                  terminalConnectionMode === "relay"
+                    ? "text-[#ded8c9]"
+                    : "text-[#5f5f5d]"
+                }`}
+              >
                 The SSHBridge backend opens SSH/tunnels and the app controls
                 them.
               </Text>
@@ -162,29 +186,31 @@ export default function Settings() {
         </View>
 
         <View className="mb-6">
-          <Text className="text-white text-lg font-semibold mb-3">
+          <Text className="mb-3 text-lg font-semibold text-[#1c1c1c]">
             Keyboard
           </Text>
           <TouchableOpacity
             onPress={() =>
               router.push("/tabs/settings/KeyboardCustomization" as any)
             }
-            className="bg-[#1a1a1a] border border-[#303032] px-6 py-4 rounded-lg flex-row items-center justify-between"
+            className="flex-row items-center justify-between rounded-lg border border-[#eceae4] bg-[#fcfbf8] px-6 py-4"
           >
             <View>
-              <Text className="text-white font-semibold text-base">
+              <Text className="text-base font-semibold text-[#1c1c1c]">
                 Customize Keyboard
               </Text>
-              <Text className="text-gray-400 text-sm mt-1">
+              <Text className="mt-1 text-sm text-[#5f5f5d]">
                 Layouts, keys, and preferences
               </Text>
             </View>
-            <Text className="text-green-500 text-xl">{">"}</Text>
+            <Text className="text-xl text-[#1c1c1c]">{">"}</Text>
           </TouchableOpacity>
         </View>
 
         <View className="mb-6">
-          <Text className="text-white text-lg font-semibold mb-3">Account</Text>
+          <Text className="mb-3 text-lg font-semibold text-[#1c1c1c]">
+            Account
+          </Text>
           <TouchableOpacity
             onPress={handleLogout}
             className="bg-red-600 px-6 py-3 rounded-lg"
@@ -192,22 +218,24 @@ export default function Settings() {
             <Text className="text-white font-semibold">Logout</Text>
           </TouchableOpacity>
 
-          <Text className="text-gray-400 text-sm mt-3">
+          <Text className="mt-3 text-sm text-[#5f5f5d]">
             To delete your account, visit your self-hosted SSHBridge instance
             and log in.
           </Text>
         </View>
 
         <View className="mb-6">
-          <Text className="text-white text-lg font-semibold mb-3">About</Text>
-          <View className="bg-[#1a1a1a] border border-[#303032] px-6 py-4 rounded-lg">
-            <Text className="text-white font-semibold text-base">
+          <Text className="mb-3 text-lg font-semibold text-[#1c1c1c]">
+            About
+          </Text>
+          <View className="rounded-lg border border-[#eceae4] bg-[#fcfbf8] px-6 py-4">
+            <Text className="text-base font-semibold text-[#1c1c1c]">
               SSHBridge Mobile
             </Text>
-            <Text className="text-gray-400 text-sm mt-1">
+            <Text className="mt-1 text-sm text-[#5f5f5d]">
               Version {appVersion}
             </Text>
-            <Text className="text-gray-400 text-sm mt-3">
+            <Text className="mt-3 text-sm text-[#5f5f5d]">
               Native mobile SSH terminal with direct device connections,
               SSHBridge server relay mode, and tunnel/port forwarding
               management.
@@ -219,9 +247,9 @@ export default function Settings() {
                   "https://github.com/nghoang1288/SSHBridge-Mobile",
                 )
               }
-              className="mt-4 bg-[#111113] border border-[#303032] px-4 py-3 rounded-lg"
+              className="mt-4 rounded-lg border border-[#1c1c1c66] bg-[#f7f4ed] px-4 py-3"
             >
-              <Text className="text-green-500 font-semibold">
+              <Text className="font-semibold text-[#1c1c1c]">
                 Open mobile repository
               </Text>
             </TouchableOpacity>
@@ -230,9 +258,9 @@ export default function Settings() {
               onPress={() =>
                 Linking.openURL("https://github.com/nghoang1288/SSHBridge-Web")
               }
-              className="mt-3 bg-[#111113] border border-[#303032] px-4 py-3 rounded-lg"
+              className="mt-3 rounded-lg border border-[#1c1c1c66] bg-[#f7f4ed] px-4 py-3"
             >
-              <Text className="text-green-500 font-semibold">
+              <Text className="font-semibold text-[#1c1c1c]">
                 Open web/server repository
               </Text>
             </TouchableOpacity>

@@ -11,24 +11,24 @@ export const BORDERS = {
 } as const;
 
 export const BORDER_COLORS = {
-  PRIMARY: "#343b46",
-  SECONDARY: "#2b323c",
-  SEPARATOR: "#2b323c",
-  BUTTON: "#343b46",
-  ACTIVE: "#61d65f",
-  PANEL: "#2b323c",
+  PRIMARY: "#eceae4",
+  SECONDARY: "#e4e0d6",
+  SEPARATOR: "#eceae4",
+  BUTTON: "rgba(28,28,28,0.16)",
+  ACTIVE: "#1c1c1c",
+  PANEL: "#eceae4",
 } as const;
 
 export const BACKGROUNDS = {
-  DARKEST: "#07090d",
-  DARKER: "#171b21",
-  HEADER: "#1a1f27",
-  DARK: "#1b1f25",
-  CARD: "#20252d",
-  BUTTON: "#242a33",
-  BUTTON_ALT: "#20252d",
-  ACTIVE: "#334155",
-  HOVER: "#2d3440",
+  DARKEST: "#101010",
+  DARKER: "#161616",
+  HEADER: "#f1eee6",
+  DARK: "#f7f4ed",
+  CARD: "#fcfbf8",
+  BUTTON: "#f7f4ed",
+  BUTTON_ALT: "rgba(28,28,28,0.04)",
+  ACTIVE: "#1c1c1c",
+  HOVER: "rgba(28,28,28,0.07)",
 } as const;
 
 export const RADIUS = {
@@ -48,11 +48,11 @@ export const SPACING = {
 } as const;
 
 export const TEXT_COLORS = {
-  PRIMARY: "#edf2f7",
-  SECONDARY: "#c5ced8",
-  TERTIARY: "#7f8a98",
-  DISABLED: "#4B5563",
-  ACCENT: "#61d65f",
+  PRIMARY: "#1c1c1c",
+  SECONDARY: "rgba(28,28,28,0.74)",
+  TERTIARY: "#5f5f5d",
+  DISABLED: "rgba(28,28,28,0.35)",
+  ACCENT: "#1c1c1c",
 } as const;
 
 export const ICON_SIZES = {

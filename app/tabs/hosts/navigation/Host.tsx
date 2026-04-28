@@ -162,8 +162,8 @@ export default function Host({ host, status }: HostProps) {
             style={{
               width: 42,
               height: 42,
-              backgroundColor: BACKGROUNDS.DARKER,
-              borderColor: BORDER_COLORS.PRIMARY,
+              backgroundColor: BACKGROUNDS.CARD,
+              borderColor: BORDER_COLORS.SECONDARY,
             }}
           >
             <Terminal size={20} color={TEXT_COLORS.PRIMARY} />
@@ -232,7 +232,7 @@ export default function Host({ host, status }: HostProps) {
               <View
                 className="mr-1.5 rounded border px-2 py-1"
                 style={{
-                  backgroundColor: BACKGROUNDS.DARKER,
+                  backgroundColor: BACKGROUNDS.CARD,
                   borderColor: BORDER_COLORS.SECONDARY,
                 }}
               >
@@ -249,7 +249,7 @@ export default function Host({ host, status }: HostProps) {
                   key={tag}
                   className="mr-1.5 rounded border px-2 py-1"
                   style={{
-                    backgroundColor: BACKGROUNDS.DARKER,
+                    backgroundColor: BACKGROUNDS.CARD,
                     borderColor: BORDER_COLORS.SECONDARY,
                   }}
                 >
@@ -283,7 +283,7 @@ export default function Host({ host, status }: HostProps) {
         supportedOrientations={["portrait", "landscape"]}
       >
         <TouchableWithoutFeedback onPress={() => setShowContextMenu(false)}>
-          <View className="flex-1 justify-end bg-black/60">
+          <View className="flex-1 justify-end bg-black/35">
             <TouchableWithoutFeedback onPress={() => {}}>
               <View
                 className="border-t border-x px-4 pt-4"
@@ -327,7 +327,7 @@ export default function Host({ host, status }: HostProps) {
                   <TouchableOpacity
                     className="ml-3 rounded-md border p-2"
                     style={{
-                      backgroundColor: BACKGROUNDS.DARKER,
+                      backgroundColor: BACKGROUNDS.BUTTON,
                       borderColor: BORDER_COLORS.SECONDARY,
                     }}
                     onPress={() => setShowContextMenu(false)}
@@ -345,7 +345,7 @@ export default function Host({ host, status }: HostProps) {
                         className="flex-row items-center rounded-md border p-3"
                         activeOpacity={0.72}
                         style={{
-                          backgroundColor: BACKGROUNDS.DARKER,
+                          backgroundColor: BACKGROUNDS.BUTTON,
                           borderColor: BORDER_COLORS.SECONDARY,
                         }}
                       >
@@ -354,7 +354,7 @@ export default function Host({ host, status }: HostProps) {
                           style={{
                             width: 38,
                             height: 38,
-                            backgroundColor: BACKGROUNDS.BUTTON,
+                            backgroundColor: BACKGROUNDS.CARD,
                             borderColor: BORDER_COLORS.PRIMARY,
                           }}
                         >

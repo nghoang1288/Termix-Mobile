@@ -91,12 +91,12 @@ export default function ServerForm() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-[#18181b]"
+      className="flex-1 bg-[#f7f4ed]"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View className="flex-1" style={{ paddingTop: insets.top }}>
-        <View className="p-4 bg-[#18181b]">
-          <Text className="text-white text-2xl font-bold text-center">
+        <View className="bg-[#f7f4ed] p-4">
+          <Text className="text-center text-2xl font-semibold text-[#1c1c1c]">
             Server Connection
           </Text>
         </View>
@@ -108,22 +108,22 @@ export default function ServerForm() {
         >
           <View className="flex-1 justify-center px-6 pb-10">
             <View className="mb-8">
-              <Text className="text-gray-300 text-sm font-medium mb-2">
+              <Text className="mb-2 text-sm font-medium text-[#1c1c1c]">
                 Server Address
               </Text>
               <View className="relative">
                 <View className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                  <Server size={20} color="#9CA3AF" />
+                  <Server size={20} color="#5f5f5d" />
                 </View>
                 <TextInput
-                  className="bg-[#1a1a1a] rounded-xl text-white border border-[#303032]"
+                  className="rounded-xl border border-[#eceae4] bg-[#fcfbf8] text-[#1c1c1c]"
                   style={{
                     height: 56,
                     paddingLeft: 48,
                     paddingRight: 16,
                   }}
                   placeholder="http://127.0.0.1:8080"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#8b8780"
                   value={formData.ip}
                   onChangeText={(value) => handleInputChange("ip", value)}
                   autoCapitalize="none"
@@ -132,7 +132,7 @@ export default function ServerForm() {
                   editable={!isLoading}
                 />
               </View>
-              <Text className="text-gray-400 text-xs mt-2">
+              <Text className="mt-2 text-xs text-[#5f5f5d]">
                 Enter the address of your self-hosted SSHBridge server.
               </Text>
             </View>
@@ -140,11 +140,11 @@ export default function ServerForm() {
             <TouchableOpacity
               onPress={handleConnect}
               disabled={isLoading}
-              className={`px-6 py-4 rounded-xl mt-4 ${
-                isLoading ? "bg-gray-600" : "bg-green-600"
+              className={`mt-4 rounded-xl px-6 py-4 ${
+                isLoading ? "bg-[#5f5f5d]" : "bg-[#1c1c1c]"
               }`}
             >
-              <Text className="text-white text-center font-semibold text-lg">
+              <Text className="text-center text-lg font-semibold text-[#fcfbf8]">
                 {isLoading ? "Saving..." : "Connect"}
               </Text>
             </TouchableOpacity>

@@ -29,6 +29,7 @@ export default function CommandAutocomplete({
   onSelect,
 }: CommandAutocompleteProps) {
   if (suggestions.length === 0) return null;
+  const visibleSuggestions = suggestions.slice(0, 3);
 
   return (
     <View pointerEvents="box-none" style={styles.container}>
@@ -38,7 +39,7 @@ export default function CommandAutocomplete({
           showsVerticalScrollIndicator={false}
           style={styles.list}
         >
-          {suggestions.map((suggestion, index) => {
+          {visibleSuggestions.map((suggestion, index) => {
             const isSelected = index === selectedIndex;
 
             return (
@@ -85,9 +86,7 @@ export default function CommandAutocomplete({
         </ScrollView>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Enter complete - Tab/Arrows navigate - Esc close
-          </Text>
+          <Text style={styles.footerText}>Tap to complete</Text>
         </View>
       </View>
     </View>
@@ -97,72 +96,72 @@ export default function CommandAutocomplete({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left: 8,
-    right: 8,
-    bottom: 8,
+    left: 10,
+    right: 10,
+    bottom: 6,
     zIndex: 1006,
   },
   card: {
-    backgroundColor: "rgba(18, 18, 22, 0.96)",
-    borderColor: "rgba(255, 255, 255, 0.12)",
-    borderRadius: 12,
+    backgroundColor: "rgba(16, 16, 16, 0.96)",
+    borderColor: "rgba(252, 251, 248, 0.12)",
+    borderRadius: 8,
     borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
   },
   list: {
-    maxHeight: 236,
+    maxHeight: 124,
   },
   row: {
     alignItems: "center",
     borderBottomColor: "rgba(255, 255, 255, 0.06)",
     borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
-    gap: 10,
-    minHeight: 52,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 8,
+    minHeight: 38,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
   },
   selectedRow: {
-    backgroundColor: "rgba(34, 197, 94, 0.14)",
+    backgroundColor: "rgba(247, 244, 237, 0.1)",
   },
   commandBlock: {
     flex: 1,
     minWidth: 0,
   },
   commandText: {
-    color: "#F8FAFC",
+    color: "#FCFBF8",
     fontFamily: "monospace",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
   descriptionText: {
-    color: "#94A3B8",
-    fontSize: 11,
-    marginTop: 2,
+    color: "rgba(252,251,248,0.5)",
+    fontSize: 10,
+    marginTop: 1,
   },
   badge: {
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
     letterSpacing: 0.2,
   },
   footer: {
-    backgroundColor: "rgba(0, 0, 0, 0.22)",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    backgroundColor: "rgba(252, 251, 248, 0.04)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   footerText: {
-    color: "#71717A",
-    fontSize: 10,
+    color: "rgba(252,251,248,0.42)",
+    fontSize: 9,
     textAlign: "center",
   },
 });

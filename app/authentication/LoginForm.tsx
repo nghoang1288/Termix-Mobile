@@ -212,7 +212,7 @@ export default function LoginForm() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-dark-bg"
+      className="flex-1 bg-[#f7f4ed]"
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
@@ -226,36 +226,42 @@ export default function LoginForm() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="mb-8">
-          <Text className="text-center text-3xl font-bold text-white">
+        <View className="mb-6">
+          <View className="mx-auto mb-4 h-12 w-12 items-center justify-center rounded-xl bg-[#1c1c1c]">
+            <Text className="font-mono text-base font-bold text-[#fcfbf8]">
+              SB
+            </Text>
+          </View>
+          <Text className="text-center text-3xl font-semibold text-[#1c1c1c]">
             SSHBridge
           </Text>
-          <Text className="mt-2 text-center text-gray-400">
-            Sign in directly to your self-hosted server
+          <Text className="mt-2 text-center text-[#5f5f5d]">
+            Connect to your server, then stay in terminal.
           </Text>
         </View>
 
-        <View className="rounded-2xl border border-[#303032] bg-[#1a1a1a] p-5">
-          <Text className="mb-1 text-lg font-semibold text-white">
-            Server Login
+        <View className="rounded-2xl border border-[#eceae4] bg-[#fcfbf8] p-5">
+          <Text className="mb-1 text-lg font-semibold text-[#1c1c1c]">
+            Command deck login
           </Text>
-          <Text className="mb-5 text-sm text-gray-400">
-            Enter the server address and your account credentials.
+          <Text className="mb-5 text-sm text-[#5f5f5d]">
+            Server URL, username and password. Next time opens straight to the
+            server list.
           </Text>
 
           <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-gray-300">
+            <Text className="mb-2 text-sm font-medium text-[#1c1c1c]">
               Server Address
             </Text>
             <View className="relative">
               <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
-                <ServerIcon size={20} color="#9CA3AF" />
+                <ServerIcon size={20} color="#5f5f5d" />
               </View>
               <TextInput
-                className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                className="rounded-xl border border-[#eceae4] bg-[#f7f4ed] text-[#1c1c1c]"
                 style={{ height: 56, paddingLeft: 48, paddingRight: 16 }}
                 placeholder="http://192.168.1.10:30001"
-                placeholderTextColor="#71717A"
+                placeholderTextColor="#8b8780"
                 value={serverAddress}
                 onChangeText={(value) => {
                   setServerAddress(value);
@@ -272,18 +278,18 @@ export default function LoginForm() {
           </View>
 
           <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-gray-300">
+            <Text className="mb-2 text-sm font-medium text-[#1c1c1c]">
               Username
             </Text>
             <View className="relative">
               <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
-                <User size={20} color="#9CA3AF" />
+                <User size={20} color="#5f5f5d" />
               </View>
               <TextInput
-                className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                className="rounded-xl border border-[#eceae4] bg-[#f7f4ed] text-[#1c1c1c]"
                 style={{ height: 56, paddingLeft: 48, paddingRight: 16 }}
                 placeholder="admin"
-                placeholderTextColor="#71717A"
+                placeholderTextColor="#8b8780"
                 value={username}
                 onChangeText={(value) => {
                   setUsername(value);
@@ -299,18 +305,18 @@ export default function LoginForm() {
           </View>
 
           <View className="mb-4">
-            <Text className="mb-2 text-sm font-medium text-gray-300">
+            <Text className="mb-2 text-sm font-medium text-[#1c1c1c]">
               Password
             </Text>
             <View className="relative">
               <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
-                <Lock size={20} color="#9CA3AF" />
+                <Lock size={20} color="#5f5f5d" />
               </View>
               <TextInput
-                className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                className="rounded-xl border border-[#eceae4] bg-[#f7f4ed] text-[#1c1c1c]"
                 style={{ height: 56, paddingLeft: 48, paddingRight: 52 }}
                 placeholder="Password"
-                placeholderTextColor="#71717A"
+                placeholderTextColor="#8b8780"
                 value={password}
                 onChangeText={(value) => {
                   setPassword(value);
@@ -330,9 +336,9 @@ export default function LoginForm() {
                 disabled={isSubmitting}
               >
                 {showPassword ? (
-                  <EyeOff size={20} color="#9CA3AF" />
+                  <EyeOff size={20} color="#5f5f5d" />
                 ) : (
-                  <Eye size={20} color="#9CA3AF" />
+                  <Eye size={20} color="#5f5f5d" />
                 )}
               </TouchableOpacity>
             </View>
@@ -340,18 +346,18 @@ export default function LoginForm() {
 
           {pendingTotpToken ? (
             <View className="mb-4">
-              <Text className="mb-2 text-sm font-medium text-gray-300">
+              <Text className="mb-2 text-sm font-medium text-[#1c1c1c]">
                 Verification Code
               </Text>
               <View className="relative">
                 <View className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
-                  <ShieldCheck size={20} color="#9CA3AF" />
+                  <ShieldCheck size={20} color="#5f5f5d" />
                 </View>
                 <TextInput
-                  className="rounded-xl border border-[#303032] bg-[#111113] text-white"
+                  className="rounded-xl border border-[#eceae4] bg-[#f7f4ed] text-[#1c1c1c]"
                   style={{ height: 56, paddingLeft: 48, paddingRight: 16 }}
                   placeholder="123456"
-                  placeholderTextColor="#71717A"
+                  placeholderTextColor="#8b8780"
                   value={totpCode}
                   onChangeText={setTotpCode}
                   autoCapitalize="none"
@@ -362,7 +368,7 @@ export default function LoginForm() {
                   onSubmitEditing={handleSubmit}
                 />
               </View>
-              <Text className="mt-2 text-xs text-gray-500">
+              <Text className="mt-2 text-xs text-[#5f5f5d]">
                 Two-factor authentication is enabled for this account.
               </Text>
             </View>
@@ -372,7 +378,7 @@ export default function LoginForm() {
             onPress={handleSubmit}
             disabled={isSubmitting}
             className={`mt-2 flex-row items-center justify-center rounded-xl px-6 py-4 ${
-              isSubmitting ? "bg-gray-600" : "bg-green-600"
+              isSubmitting ? "bg-[#5f5f5d]" : "bg-[#1c1c1c]"
             }`}
           >
             {isSubmitting ? (
@@ -394,7 +400,7 @@ export default function LoginForm() {
               disabled={isSubmitting}
               className="mt-4"
             >
-              <Text className="text-center text-sm font-medium text-gray-400">
+              <Text className="text-center text-sm font-medium text-[#5f5f5d]">
                 Use a different password
               </Text>
             </TouchableOpacity>
