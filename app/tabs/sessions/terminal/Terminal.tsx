@@ -1195,7 +1195,7 @@ function normalizeTerminalData(rawData: string) {
     .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
     .replace(/\x1b[()][AB012]/g, "")
     .replace(/\x1b[=>]/g, "")
-    .replace(/[\x00-\x08\x0b\x0e-\x1f]/g, "");
+    .replace(/[\x00-\x07\x0b\x0e-\x1f]/g, "");
 
   return { clearBeforeAppend, text };
 }
