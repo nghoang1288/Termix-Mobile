@@ -233,11 +233,11 @@ export default function Host({
                 activeOpacity={0.7}
                 className="ml-2 rounded-md border p-2"
                 style={{
-                  backgroundColor: BACKGROUNDS.DARKER,
-                  borderColor: BORDER_COLORS.SECONDARY,
+                  backgroundColor: BACKGROUNDS.BUTTON_ALT,
+                  borderColor: BORDER_COLORS.BUTTON,
                 }}
               >
-                <MoreVertical size={16} color={TEXT_COLORS.SECONDARY} />
+                <MoreVertical size={16} color={TEXT_COLORS.PRIMARY} />
               </TouchableOpacity>
             </View>
 
